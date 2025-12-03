@@ -1,0 +1,47 @@
+# ---- Python general ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+*.log
+
+# ---- Virtual environment ----
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ---- Django specific ----
+db.sqlite3
+media/
+staticfiles/
+static/
+*.sqlite3
+
+# ---- Environment / Secrets ----
+.env
+.env.local
+*.env
+
+# ---- Pytest / Tests ----
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ---- IDE / Editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- OS / Temp files ----
+.DS_Store
+Thumbs.db
