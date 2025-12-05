@@ -6,15 +6,24 @@ from ..models import Customer
 from .serializers import CustomerSerializer
 from ..read_pdf import extract_pdf_text
 
-class Customers(ListAPIView):
+
+class Customers(APIView):
     permission_classes = [AllowAny]
     queryset = Customer.objects.all()
-
     serializer_class = CustomerSerializer
 
-class Test(APIView):
-    permission_classes = [AllowAny]
-    def get(request, self):
+    def post(self, request):
         pdf_path = "C:/Users/67Trane/epson-test/test_run.pdf"
-        test = extract_pdf_text(pdf_path)
-        return Response(test)
+        infos = extract_pdf_text(pdf_path)
+        customer = Customer.objects.create(**infos)
+        serializer = CustomerSerializer(customer)
+        return Response(serializer.data, status=201)
+
+
+# class Test(APIView):
+#     permission_classes = [AllowAny]
+
+#     def get(self, request):
+#         pdf_path = "C:/Users/67Trane/epson-test/test_run.pdf"
+#         infos = extract_pdf_text(pdf_path)
+#         return Response(infos)

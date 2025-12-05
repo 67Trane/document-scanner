@@ -1,6 +1,12 @@
 from django.db import models
 
+
 class Customer(models.Model):
+    SALUTATION_CHOICES = [
+        ("Herr", "Herr"),
+        ("Frau", "Frau"),
+    ]
+
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -11,9 +17,16 @@ class Customer(models.Model):
     zip_code = models.CharField(max_length=20, null=True, blank=True)
     city = models.CharField(max_length=100, null=True, blank=True)
     country = models.CharField(max_length=100, default="Germany")
-
+    policy_number = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    license_plate = models.CharField(max_length=20, null=True, blank=True)
+    salutation = models.CharField(
+        max_length=10,
+        choices=SALUTATION_CHOICES,
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         # For admin display
@@ -55,16 +68,21 @@ class Policy(models.Model):
         ("yearly", "Yearly"),
     ]
 
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="policies")
-    insurance_company = models.ForeignKey(InsuranceCompany, on_delete=models.PROTECT, related_name="policies")
-    insurance_type = models.ForeignKey(InsuranceType, on_delete=models.PROTECT, related_name="policies")
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, related_name="policies")
+    insurance_company = models.ForeignKey(
+        InsuranceCompany, on_delete=models.PROTECT, related_name="policies")
+    insurance_type = models.ForeignKey(
+        InsuranceType, on_delete=models.PROTECT, related_name="policies")
 
     policy_number = models.CharField(max_length=100)
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="active")
 
-    premium_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    premium_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True)
     payment_interval = models.CharField(
         max_length=20,
         choices=PAYMENT_INTERVAL_CHOICES,
@@ -95,20 +113,26 @@ class Document(models.Model):
         ("email", "Email"),
     ]
 
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="documents")
-    policy = models.ForeignKey(Policy, on_delete=models.SET_NULL, null=True, blank=True, related_name="documents")
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, related_name="documents")
+    policy = models.ForeignKey(
+        Policy, on_delete=models.SET_NULL, null=True, blank=True, related_name="documents")
 
-    document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPE_CHOICES, default="other")
+    document_type = models.CharField(
+        max_length=30, choices=DOCUMENT_TYPE_CHOICES, default="other")
     title = models.CharField(max_length=255)
 
     # Later you can point this to a NAS path or FileField
-    file = models.FileField(upload_to="documents/")  # or use a CharField for NAS path
+    # or use a CharField for NAS path
+    file = models.FileField(upload_to="documents/")
     original_filename = models.CharField(max_length=255)
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default="scanner")
+    source = models.CharField(
+        max_length=20, choices=SOURCE_CHOICES, default="scanner")
 
-    tags = models.CharField(max_length=255, null=True, blank=True)  # e.g. "auto, haftpflicht"
+    tags = models.CharField(max_length=255, null=True,
+                            blank=True)  # e.g. "auto, haftpflicht"
     ocr_text = models.TextField(null=True, blank=True)  # fulltext from OCR
 
     def __str__(self):
