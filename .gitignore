@@ -30,6 +30,7 @@ static/
 .env
 .env.local
 *.env
+.env.template
 
 # ---- Pytest / Tests ----
 .coverage

@@ -20,7 +20,7 @@ class Customer(models.Model):
     policy_number = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    license_plate = models.CharField(max_length=20, null=True, blank=True)
+    license_plates = models.JSONField(default=list, blank=True)
     salutation = models.CharField(
         max_length=10,
         choices=SALUTATION_CHOICES,
@@ -33,78 +33,13 @@ class Customer(models.Model):
         return f"{self.last_name}, {self.first_name}"
 
 
-class InsuranceCompany(models.Model):
-    name = models.CharField(max_length=200)
-    street = models.CharField(max_length=200, null=True, blank=True)
-    zip_code = models.CharField(max_length=20, null=True, blank=True)
-    city = models.CharField(max_length=100, null=True, blank=True)
-    contact_email = models.EmailField(null=True, blank=True)
-    contact_phone = models.CharField(max_length=50, null=True, blank=True)
-    website = models.URLField(null=True, blank=True)
-
-    def __str__(self):
-        return self.name
-
-
-class InsuranceType(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return self.name
-
-
-class Policy(models.Model):
-    STATUS_CHOICES = [
-        ("active", "Active"),
-        ("cancelled", "Cancelled"),
-        ("expired", "Expired"),
-        ("pending", "Pending"),
-    ]
-
-    PAYMENT_INTERVAL_CHOICES = [
-        ("monthly", "Monthly"),
-        ("quarterly", "Quarterly"),
-        ("yearly", "Yearly"),
-    ]
-
-    customer = models.ForeignKey(
-        Customer, on_delete=models.CASCADE, related_name="policies")
-    insurance_company = models.ForeignKey(
-        InsuranceCompany, on_delete=models.PROTECT, related_name="policies")
-    insurance_type = models.ForeignKey(
-        InsuranceType, on_delete=models.PROTECT, related_name="policies")
-
-    policy_number = models.CharField(max_length=100)
-    start_date = models.DateField()
-    end_date = models.DateField(null=True, blank=True)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="active")
-
-    premium_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True)
-    payment_interval = models.CharField(
-        max_length=20,
-        choices=PAYMENT_INTERVAL_CHOICES,
-        null=True,
-        blank=True,
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        # Example: "Allianz - Privathaftpflicht - 123456"
-        return f"{self.insurance_company} - {self.insurance_type} - {self.policy_number}"
-
-
 class Document(models.Model):
     DOCUMENT_TYPE_CHOICES = [
-        ("policy", "Policy"),
-        ("cancellation", "Cancellation"),
-        ("invoice", "Invoice"),
-        ("correspondence", "Correspondence"),
-        ("other", "Other"),
+        ("policy", "Versicherungsschein"),
+        ("conditions", "Bedingungen"),
+        ("cancellation", "Kündigung"),
+        ("invoice", "Rechnung"),
+        ("other", "Sonstiges"),
     ]
 
     SOURCE_CHOICES = [
@@ -114,26 +49,38 @@ class Document(models.Model):
     ]
 
     customer = models.ForeignKey(
-        Customer, on_delete=models.CASCADE, related_name="documents")
-    policy = models.ForeignKey(
-        Policy, on_delete=models.SET_NULL, null=True, blank=True, related_name="documents")
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="documents",
+    )
+
+    # Optional einfache Strings statt extra Tabellen:
+    insurance_company_name = models.CharField(
+        max_length=200, null=True, blank=True)
+    insurance_type_name = models.CharField(
+        max_length=100, null=True, blank=True)
 
     document_type = models.CharField(
-        max_length=30, choices=DOCUMENT_TYPE_CHOICES, default="other")
+        max_length=30,
+        choices=DOCUMENT_TYPE_CHOICES,
+        default="other",
+    )
+
     title = models.CharField(max_length=255)
 
-    # Later you can point this to a NAS path or FileField
-    # or use a CharField for NAS path
-    file = models.FileField(upload_to="documents/")
-    original_filename = models.CharField(max_length=255)
+    # WICHTIG: Du willst eh auf NAS speichern → String-Pfad reicht vollkommen
+    file_path = models.CharField(max_length=500)
+
+    original_filename = models.CharField(max_length=255, null=True, blank=True)
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
     source = models.CharField(
-        max_length=20, choices=SOURCE_CHOICES, default="scanner")
+        max_length=20, choices=SOURCE_CHOICES, default="scanner"
+    )
 
-    tags = models.CharField(max_length=255, null=True,
-                            blank=True)  # e.g. "auto, haftpflicht"
-    ocr_text = models.TextField(null=True, blank=True)  # fulltext from OCR
+    tags = models.CharField(max_length=255, null=True, blank=True)
+    # Volltext aus PDF z.B. für Suche
+    ocr_text = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return self.title

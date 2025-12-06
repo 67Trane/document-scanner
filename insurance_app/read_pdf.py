@@ -26,6 +26,7 @@ def extract_pdf_text(pdf_file: str) -> dict:
 
     policy_number = extract_policy_number(new_text)
     license_plate = extract_license_plate(new_text)
+    print(type(license_plate))
 
 
     return {
@@ -40,7 +41,7 @@ def extract_pdf_text(pdf_file: str) -> dict:
         "zip_code": zip_code,
         "city": city,
         "country": "Germany",
-        "license_plate": license_plate,
+        "license_plates": [license_plate],
     }
 
 
