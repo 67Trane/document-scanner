@@ -1,86 +1,112 @@
+
 from django.db import models
+from django.utils import timezone
 
 
 class Customer(models.Model):
-    SALUTATION_CHOICES = [
-        ("Herr", "Herr"),
-        ("Frau", "Frau"),
-    ]
-
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    customer_number = models.CharField(
+        max_length=11,  # "YYYY-XXXXXX" -> 4 + 1 + 6 = 11
+        unique=True,
+        null=True,
+        blank=True,
+    )
+    salutation = models.CharField(max_length=10, blank=True)
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
-    phone = models.CharField(max_length=50, null=True, blank=True)
-
-    street = models.CharField(max_length=200, null=True, blank=True)
-    zip_code = models.CharField(max_length=20, null=True, blank=True)
-    city = models.CharField(max_length=100, null=True, blank=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=50, blank=True)
+    street = models.CharField(max_length=255, blank=True)
+    zip_code = models.CharField(max_length=10, blank=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100, default="Germany")
-    policy_number = models.CharField(max_length=20, null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    license_plates = models.JSONField(default=list, blank=True)
-    salutation = models.CharField(
-        max_length=10,
-        choices=SALUTATION_CHOICES,
-        null=True,
-        blank=True
-    )
 
     def __str__(self):
-        # For admin display
-        return f"{self.last_name}, {self.first_name}"
+        return f"{self.customer_number or '-'} - {self.first_name} {self.last_name}".strip()
+
+    def save(self, *args, **kwargs):
+        if not self.customer_number:
+            self.customer_number = self._generate_customer_number()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def _generate_customer_number(cls) -> str:
+        """
+        Erzeugt eine Kundennummer im Format YYYY-XXXXXX.
+        Beispiel: 2025-000001
+        """
+        year = timezone.now().year
+
+        # Alle Kunden aus diesem Jahr holen
+        last_customer = (
+            cls.objects
+            .filter(customer_number__startswith=str(year))
+            .order_by("-customer_number")
+            .first()
+        )
+
+        if last_customer and last_customer.customer_number:
+            # Kundennummer-Teil nach dem '-' holen und in int umwandeln
+            _, last_seq_str = last_customer.customer_number.split("-")
+            last_seq = int(last_seq_str)
+            next_seq = last_seq + 1
+        else:
+            next_seq = 1
+
+        return f"{year}-{next_seq:06d}"
 
 
 class Document(models.Model):
-    DOCUMENT_TYPE_CHOICES = [
-        ("policy", "Versicherungsschein"),
-        ("conditions", "Bedingungen"),
-        ("cancellation", "Kündigung"),
-        ("invoice", "Rechnung"),
-        ("other", "Sonstiges"),
+
+    STATUS_CHOICES = [
+        ("aktiv", "Aktiv"),
+        ("ruhend", "Ruhend"),
     ]
 
-    SOURCE_CHOICES = [
-        ("scanner", "Scanner"),
-        ("upload", "Upload"),
-        ("email", "Email"),
+    CONTRACT_TYPES = [
+        ("kfz", "Kfz-Versicherung"),
+        ("haftpflicht", "Privat-Haftpflicht"),
+        ("hausrat", "Hausrat"),
+        ("rechtschutz", "Rechtsschutz"),
+        ("wohngebaeude", "Wohngebäudeversicherung"),
+        ("unfall", "Unfallversicherung"),
+        ("lebensversicherung", "Lebensversicherung"),
+        ("berufsunfaehigkeit", "Berufsunfähigkeitsversicherung"),
+        ("krankenversicherung", "Private Krankenversicherung"),
+        ("tierversicherung", "Tierhalterhaftpflicht / Tierkranken"),
+        ("reise", "Reiseversicherung"),
     ]
 
     customer = models.ForeignKey(
         Customer,
-        on_delete=models.CASCADE,
         related_name="documents",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
 
-    # Optional einfache Strings statt extra Tabellen:
-    insurance_company_name = models.CharField(
-        max_length=200, null=True, blank=True)
-    insurance_type_name = models.CharField(
-        max_length=100, null=True, blank=True)
+    file_path = models.CharField(max_length=512)
+    raw_text = models.TextField(blank=True, null=True)
+    policy_number = models.CharField(max_length=100, null=True, blank=True)
+    license_plates = models.JSONField(default=list, blank=True)
 
-    document_type = models.CharField(
-        max_length=30,
-        choices=DOCUMENT_TYPE_CHOICES,
-        default="other",
+    contract_status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="aktiv"
     )
 
-    title = models.CharField(max_length=255)
-
-    # WICHTIG: Du willst eh auf NAS speichern → String-Pfad reicht vollkommen
-    file_path = models.CharField(max_length=500)
-
-    original_filename = models.CharField(max_length=255, null=True, blank=True)
-
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-    source = models.CharField(
-        max_length=20, choices=SOURCE_CHOICES, default="scanner"
+    contract_typ = models.CharField(
+        max_length=50,
+        choices=CONTRACT_TYPES,
+        null=True,
+        blank=True,
     )
 
-    tags = models.CharField(max_length=255, null=True, blank=True)
-    # Volltext aus PDF z.B. für Suche
-    ocr_text = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.title
+        return f"Document {self.id} ({self.policy_number or 'no policy'})"
