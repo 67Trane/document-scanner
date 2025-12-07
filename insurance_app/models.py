@@ -9,16 +9,17 @@ class Customer(models.Model):
         unique=True,
         null=True,
         blank=True,
+        db_index=True
     )
     salutation = models.CharField(max_length=10, blank=True)
-    first_name = models.CharField(max_length=100, blank=True)
-    last_name = models.CharField(max_length=100, blank=True)
+    first_name = models.CharField(max_length=100, blank=True, db_index=True)
+    last_name = models.CharField(max_length=100, blank=True, db_index=True)
     date_of_birth = models.DateField(null=True, blank=True)
-    email = models.EmailField(blank=True, null=True)
+    email = models.EmailField(blank=True, null=True, db_index=True)
     phone = models.CharField(max_length=50, blank=True)
     street = models.CharField(max_length=255, blank=True)
-    zip_code = models.CharField(max_length=10, blank=True)
-    city = models.CharField(max_length=100, blank=True, null=True)
+    zip_code = models.CharField(max_length=10, blank=True, db_index=True)
+    city = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     country = models.CharField(max_length=100, default="Germany")
 
     created_at = models.DateTimeField(auto_now_add=True)

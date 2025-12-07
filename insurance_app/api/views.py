@@ -7,12 +7,29 @@ import os
 from ..models import Customer, Document
 from .serializers import CustomerSerializer, DocumentSerializer
 from ..read_pdf import extract_pdf_text
+from django.db.models import Q
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
-    queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
+
+    def get_queryset(self):
+        qs = Customer.objects.all()
+
+        q = self.request.query_params.get("q")
+        if q:
+            q = q.strip()
+            qs = qs.filter(
+                Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
+                | Q(email__icontains=q)
+                | Q(zip_code__icontains=q)
+                | Q(city__icontains=q)
+                | Q(customer_number__icontains=q)
+            )
+
+        return qs
 
 
 class DocumentViewSet(viewsets.ModelViewSet):

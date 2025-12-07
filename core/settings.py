@@ -31,7 +31,8 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
 allowed_hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]
+ALLOWED_HOSTS = [host.strip()
+                 for host in allowed_hosts_env.split(",") if host.strip()]
 
 
 # Application definition
@@ -142,6 +143,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
 }
 
 
