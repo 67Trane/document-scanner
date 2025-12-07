@@ -26,7 +26,6 @@ def extract_pdf_text(pdf_file: str) -> dict:
 
     policy_number = extract_policy_number(new_text)
     license_plate = extract_license_plate(new_text)
-    print(type(license_plate))
 
 
     return {

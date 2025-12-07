@@ -4,7 +4,6 @@ from django.urls import path
 
 router = DefaultRouter()
 router.register(r'customers', CustomerViewSet, basename='customers')
-# router.register(r'documents', Documents, basename='documents')
 
 
 urlpatterns = router.urls + [

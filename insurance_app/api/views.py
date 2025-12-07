@@ -1,12 +1,9 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny
 from ..models import Customer
 from .serializers import CustomerSerializer
 from ..read_pdf import extract_pdf_text
 from rest_framework import status, viewsets
-from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 
 
@@ -45,12 +42,3 @@ def import_customer_from_pdf(request):
     customer = serializer.save()
 
     return Response(CustomerSerializer(customer).data, status=status.HTTP_201_CREATED)
-
-
-# class Test(APIView):
-#     permission_classes = [AllowAny]
-
-#     def get(self, request):
-#         pdf_path = "C:/Users/67Trane/epson-test/test_run.pdf"
-#         infos = extract_pdf_text(pdf_path)
-#         return Response(infos)
