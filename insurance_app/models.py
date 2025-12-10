@@ -4,12 +4,24 @@ from django.utils import timezone
 
 
 class Customer(models.Model):
+    ACTIVE_STATUS = [
+        ("aktiv", "Aktiv"),
+        ("ruhend", "Ruhend"),
+    ]
+    
     customer_number = models.CharField(
         max_length=11,  # "YYYY-XXXXXX" -> 4 + 1 + 6 = 11
         unique=True,
         null=True,
         blank=True,
         db_index=True
+    )
+    
+    active_status = models.CharField(
+        max_length=50,
+        choices=ACTIVE_STATUS,
+        null=True,
+        blank=True,
     )
     salutation = models.CharField(max_length=10, blank=True)
     first_name = models.CharField(max_length=100, blank=True, db_index=True)

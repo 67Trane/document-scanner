@@ -75,6 +75,7 @@ class DocumentImportView(APIView):
             "email": infos.get("email") or "",
             "phone": infos.get("phone") or "",
             "date_of_birth": infos.get("date_of_birth"),
+            "active_status": infos.get("active_status"),
         }
 
         # ---- Versuche, existierenden Customer zu finden ----
