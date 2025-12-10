@@ -3,11 +3,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import FileResponse, Http404
+from django.db.models import Q
+from django.core.exceptions import ValidationError
 import os
+
 from ..models import Customer, Document
 from .serializers import CustomerSerializer, DocumentSerializer
 from ..read_pdf import extract_pdf_text
-from django.db.models import Q
+from ..services import move_pdf_to_customer_folder
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
@@ -50,6 +53,7 @@ class DocumentImportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ---- PDF auslesen ----
         try:
             infos = extract_pdf_text(pdf_path)
         except FileNotFoundError:
@@ -75,7 +79,7 @@ class DocumentImportView(APIView):
             "email": infos.get("email") or "",
             "phone": infos.get("phone") or "",
             "date_of_birth": infos.get("date_of_birth"),
-            "active_status": infos.get("active_status"),
+            "active_status": infos.get("active_status")
         }
 
         # ---- Versuche, existierenden Customer zu finden ----
@@ -86,7 +90,6 @@ class DocumentImportView(APIView):
             "street": customer_data["street"],
         }
 
-        # Filter nur wenn wenigstens Name + Straße + PLZ da sind
         qs = Customer.objects.all()
         for field, value in lookup.items():
             if value:
@@ -101,26 +104,47 @@ class DocumentImportView(APIView):
             serializer.is_valid(raise_exception=True)
             customer = serializer.save()
             created = True
+        print("startet:")
+        # ---- PDF in Kundenordner verschieben ----
+        try:
+            new_file_path = move_pdf_to_customer_folder(pdf_path, customer)
+            print("wurde erstellt")
+        except FileNotFoundError:
+            return Response(
+                {"error": f"Datei nicht gefunden (beim Verschieben): {pdf_path}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except (ValueError, ValidationError) as e:
+            return Response(
+                {"error": f"Fehler beim Verschieben der Datei: {e}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Unerwarteter Fehler beim Verschieben der Datei: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         # ---- Document anlegen ----
         raw_text = infos.get("raw_text", "")
         policy_number = infos.get("policy_number")
         license_plates = infos.get("license_plates") or []
         contract_typ = infos.get("contract_typ")
-        contract_status = infos.get("contract_status")
+        contract_status = infos.get("contract_status") or "aktiv"
 
         document = Document.objects.create(
             customer=customer,
-            file_path=pdf_path,
+            file_path=new_file_path,  # ⬅️ wichtig: neuer Pfad!
             raw_text=raw_text,
             policy_number=policy_number,
             license_plates=license_plates,
             contract_typ=contract_typ,
-            contract_status="aktiv"
+            contract_status=contract_status,
         )
 
         doc_serializer = DocumentSerializer(
-            document, context={"request": request})
+            document, context={"request": request}
+        )
 
         return Response(
             {

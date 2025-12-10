@@ -153,3 +153,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+# CUSTOMER_DOCUMENT_ROOT = "/Kunden/Dokumente"
+CUSTOMER_DOCUMENT_ROOT = r"C:\Users\67Trane\epson-test\test-runs\customer-documents"
