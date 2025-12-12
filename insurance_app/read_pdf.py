@@ -1,190 +1,232 @@
-import pdfplumber
-import re
-from typing import Optional, Tuple
+from __future__ import annotations
 
+import re
+from dataclasses import dataclass, asdict
+from typing import Optional, List, Dict
+
+import pdfplumber
+
+
+# -------------------------
+# Regex constants (compiled)
+# -------------------------
+
+RE_MULTI_SPACE = re.compile(r"[ \t]+")
+RE_MULTI_NEWLINES = re.compile(r"\n{2,}")
+RE_JOIN_SALUTATION_LINEBREAK = re.compile(r"(Herr|Frau)\s*\n\s*([A-ZÄÖÜ])")
+
+# Keep newlines, keep common punctuation, strip weird OCR artifacts
+RE_OCR_GARBAGE = re.compile(r"[^0-9A-Za-zÄÖÜäöüß.,:/()\-\n ]")
+
+# Address block:
+#   Herr/Frau <Name>
+#   <Street>
+#   <ZIP> <City>
+RE_ADDRESS_BLOCK = re.compile(
+    r"(?m)^(Herr|Frau)\s+([^\n]+)\n"          # salutation + name
+    r"([A-ZÄÖÜ][^\n]+)\n"                    # street
+    r"(\d{5})\s+([A-Za-zÄÖÜäöüß ]+)\s*$"      # zip + city
+)
+
+# Fallback greeting (less reliable; last name only often)
+RE_GREETING_FALLBACK = re.compile(
+    r"Sehr geehrter\s+(Herr|Frau)\s+([A-ZÄÖÜ][^\s,]+)"
+)
+
+# Policy number example: "K 177-332804/1"
+RE_POLICY_NUMBER = re.compile(r"\bK\s*\d{3}-\d{6}/\d+\b")
+
+# License plate example: "N-AB 1234" (basic DE pattern-ish)
+RE_LICENSE_PLATE = re.compile(r"\b[A-Z]{1,3}-[A-Z]{1,2}\s*\d{1,4}\b")
+
+
+# -------------------------
+# Output structure
+# -------------------------
+
+@dataclass(frozen=True)
+class ExtractedPDFData:
+    raw_text: str
+    normalized_text: str
+
+    # Customer related
+    salutation: str = ""
+    first_name: str = ""
+    last_name: str = ""
+    date_of_birth: Optional[str] = None
+    email: str = ""
+    phone: str = ""
+    street: str = ""
+    zip_code: str = ""
+    city: str = ""
+    country: str = "Germany"
+
+    # Contract / vehicle
+    policy_number: Optional[str] = None
+    license_plates: List[str] = None
+    contract_typ: Optional[str] = None
+
+    def to_dict(self) -> Dict:
+        data = asdict(self)
+        # Ensure list default is not None
+        if data["license_plates"] is None:
+            data["license_plates"] = []
+        return data
+
+
+# -------------------------
+# Public API
+# -------------------------
 
 def extract_pdf_text(pdf_file: str) -> dict:
+    raw_text = _read_pdf_text(pdf_file)
+    normalized = normalize_text(raw_text)
+
+    address = _extract_address_block(normalized)
+    first_name, last_name = _split_name(address.name) if address else ("", "")
+
+    policy_number = extract_policy_number(normalized)
+    license_plate = extract_license_plate(normalized)
+    contract_type = extract_contract_type(normalized)
+
+    result = ExtractedPDFData(
+        raw_text=raw_text,
+        normalized_text=normalized,
+
+        salutation=address.salutation if address else "",
+        first_name=first_name,
+        last_name=last_name,
+        street=address.street if address else "",
+        zip_code=address.zip_code if address else "",
+        city=address.city if address else "",
+
+        policy_number=policy_number,
+        license_plates=[license_plate] if license_plate else [],
+        contract_typ=contract_type,
+    )
+    return result.to_dict()
+
+
+# -------------------------
+# Reading / normalization
+# -------------------------
+
+def _read_pdf_text(pdf_file: str) -> str:
     with pdfplumber.open(pdf_file) as pdf:
-        pages_text = []
-        for page in pdf.pages:
-            # page.extract_text() can return None
-            pages_text.append(page.extract_text() or "")
-
-    raw_text = "\n".join(pages_text)
-    new_text = normalize_text(raw_text)
-
-    # Extract name
-    full_name = extract_name(new_text)
-    first_name = ""
-    last_name = ""
-
-    if full_name:
-        parts = full_name.split()
-        first_name = parts[0]
-        last_name = " ".join(parts[1:]) if len(parts) > 1 else ""
-
-    # Extract address parts (salutation, street, zip, city)
-    salutation, street, zip_code, city = extract_address_parts(new_text)
-
-    policy_number = extract_policy_number(new_text)
-    license_plate = extract_license_plate(new_text)
-    contract_type = extract_contract_type(new_text)
-
-    return {
-        "raw_text": raw_text,
-        "normalized_text": new_text,
-
-        # customer related
-        "salutation": salutation,
-        "first_name": first_name,
-        "last_name": last_name,
-        "date_of_birth": None,
-        "email": "",
-        "phone": "",
-        "street": street,
-        "zip_code": zip_code,
-        "city": city,
-        "country": "Germany",
-
-        # contract / vehicle
-        "policy_number": policy_number,
-        "license_plates": [license_plate] if license_plate else [],
-        "contract_typ": contract_type,
-    }
+        pages = [(page.extract_text() or "") for page in pdf.pages]
+    return "\n".join(pages)
 
 
 def normalize_text(text: str) -> str:
     text = text.replace("\r", "")
-
-    # Remove multiple spaces / tabs
-    text = re.sub(r"[ \t]+", " ", text)
-
-    # Remove double empty lines
-    text = re.sub(r"\n{2,}", "\n", text)
-
-    # Join "Herr\n Isa" -> "Herr Isa"
-    text = re.sub(r"(Herr|Frau)\s*\n\s*([A-ZÄÖÜ])", r"\1 \2", text)
-
-    # Filter out OCR garbage
-    text = re.sub(r"[^0-9A-Za-zÄÖÜäöüß.,:/()\-\n ]", "", text)
-
-    return text
+    text = RE_MULTI_SPACE.sub(" ", text)
+    text = RE_MULTI_NEWLINES.sub("\n", text)
+    text = RE_JOIN_SALUTATION_LINEBREAK.sub(r"\1 \2", text)
+    text = RE_OCR_GARBAGE.sub("", text)
+    return text.strip()
 
 
-def extract_name(text: str) -> Optional[str]:
-    """
-    Extract the full name from the address block:
+# -------------------------
+# Address parsing
+# -------------------------
 
-        Herr/Frau <FirstName> <LastName>
-        <Street>
-        <ZIP> <City>
-    """
-    pattern = re.compile(
-        r"(Herr|Frau)\s+([^\n]+)\n"          # salutation + name
-        r"[A-ZÄÖÜ][^\n]+\n"                 # street
-        r"\d{5}\s+[A-Za-zÄÖÜäöüß ]+"        # zip + city
-    )
+@dataclass(frozen=True)
+class AddressBlock:
+    salutation: str
+    name: str
+    street: str
+    zip_code: str
+    city: str
 
-    match = pattern.search(text)
-    if match:
-        full_name = match.group(2).strip()
-        return full_name
 
-    # Fallback: "Sehr geehrter Herr Deliaci,"
-    fallback = re.compile(r"Sehr geehrter\s+(Herr|Frau)\s+([A-ZÄÖÜ][^\s,]+)")
-    m2 = fallback.search(text)
+def _extract_address_block(text: str) -> Optional[AddressBlock]:
+    m = RE_ADDRESS_BLOCK.search(text)
+    if m:
+        return AddressBlock(
+            salutation=m.group(1).strip(),
+            name=m.group(2).strip(),
+            street=m.group(3).strip(),
+            zip_code=m.group(4).strip(),
+            city=m.group(5).strip(),
+        )
+
+    # Fallback: only gets salutation + a single name token (often last name)
+    m2 = RE_GREETING_FALLBACK.search(text)
     if m2:
-        return m2.group(2).strip()
+        return AddressBlock(
+            salutation=m2.group(1).strip(),
+            name=m2.group(2).strip(),
+            street="",
+            zip_code="",
+            city="",
+        )
 
     return None
 
 
-def extract_address_parts(text: str) -> Tuple[str, str, str, str]:
-    """
-    Find:
-        Herr/Frau <Name>
-        <Street>
-        <ZIP> <City>
+def _split_name(full_name: str) -> tuple[str, str]:
+    parts = full_name.split()
+    if not parts:
+        return "", ""
+    first = parts[0]
+    last = " ".join(parts[1:]) if len(parts) > 1 else ""
+    return first, last
 
-    Returns (salutation, street, zip_code, city).
-    If not found, returns empty strings.
-    """
-    pattern = re.compile(
-        r"(Herr|Frau)\s+[^\n]+\n"          # salutation + name line
-        r"([A-ZÄÖÜ][^\n]+)\n"             # street line
-        r"(\d{5})\s+([A-Za-zÄÖÜäöüß ]+)"  # zip + city line
-    )
 
-    m = pattern.search(text)
-    if not m:
-        return "", "", "", ""
-
-    salutation = m.group(1).strip()
-    street = m.group(2).strip()
-    zip_code = m.group(3).strip()
-    city = m.group(4).strip()
-    return salutation, street, zip_code, city
-
+# -------------------------
+# Other extractors
+# -------------------------
 
 def extract_policy_number(text: str) -> Optional[str]:
-    # e.g. "K 177-332804/1"
-    pattern = re.compile(r"K\s*\d{3}-\d{6}/\d+")
-    m = pattern.search(text)
-    return m.group() if m else None
+    m = RE_POLICY_NUMBER.search(text)
+    return m.group(0) if m else None
 
 
 def extract_license_plate(text: str) -> Optional[str]:
-    # e.g. "N-AB 1234"
-    match = re.search(r"[A-Z]{1,3}-[A-Z]{1,2}\s*\d{1,4}", text)
-    return match.group() if match else None
+    m = RE_LICENSE_PLATE.search(text)
+    return m.group(0) if m else None
+
+
+# -------------------------
+# Contract type detection
+# -------------------------
+
+CONTRACT_RULES: list[tuple[str, list[re.Pattern[str]]]] = [
+    # Returned values should match your Django CONTRACT_TYPES keys (or whatever you want)
+    ("kfz", [
+        re.compile(r"\bkfz\b", re.I),
+        re.compile(r"kfz[-\s]?versicherung", re.I),
+        re.compile(r"\bkennzeichen\b", re.I),
+        re.compile(r"\bteilkasko\b", re.I),
+    ]),
+    ("hausrat", [
+        re.compile(r"\bhausrat\b", re.I),
+        re.compile(r"hausratversicherung", re.I),
+    ]),
+    ("haftpflicht", [
+        re.compile(r"privathaftpflicht", re.I),
+        re.compile(r"\bhaftpflicht\b", re.I),
+    ]),
+    ("rechtsschutz", [
+        re.compile(r"rechtsschutz|rechtschutz", re.I),
+    ]),
+    ("wohngebaeude", [
+        re.compile(r"wohngebäude|wohngebaeude", re.I),
+    ]),
+    ("unfall", [
+        re.compile(r"unfallversicherung|gliedertaxe", re.I),
+    ]),
+    ("berufsunfaehigkeit", [
+        re.compile(r"berufsunfähigkeit|berufsunfaehigkeit|bu-rente", re.I),
+    ]),
+    ("krankenversicherung", [
+        re.compile(r"private krankenversicherung|krankenvollversicherung|\bpkv\b", re.I),
+    ]),
+]
 
 
 def extract_contract_type(text: str) -> Optional[str]:
-    """
-    Versucht, den Vertragstyp aus dem Text zu erkennen.
-    Gibt einen der Keys aus deinem Django-CONTRACT_TYPES zurück
-    (z.B. 'kfz', 'hausrat', 'haftpflicht', ...).
-    """
-
-    text_lower = text.lower()
-
-    # Kfz-Versicherung: verschiedene Schreibweisen abdecken
-    if (
-        "kfz-versicherung" in text_lower
-        or "kfz versicherung" in text_lower
-        or "kfz" in text_lower and "versicherung" in text_lower
-        or "kennzeichen" in text_lower
-        or "teilkasko" in text_lower
-        or "haftpflicht" in text_lower and "kfz" in text_lower
-    ):
-        return "Kfz-Versicherung"
-
-    # Hausrat
-    if re.search(r"\bhausrat\b", text_lower) or "hausratversicherung" in text_lower:
-        return "hausrat"
-
-    # Privat-Haftpflicht
-    if "privathaftpflicht" in text_lower or re.search(r"\bhaftpflicht\b", text_lower):
-        return "haftpflicht"
-
-    # Rechtsschutz
-    if "rechtsschutz" in text_lower or "rechtschutz" in text_lower:
-        return "rechtschutz"
-
-    # Wohngebäude
-    if "wohngebäude" in text_lower or "wohngebaeude" in text_lower:
-        return "wohngebaeude"
-
-    # Unfall
-    if "unfallversicherung" in text_lower or "gliedertaxe" in text_lower:
-        return "unfall"
-
-    # BU
-    if "berufsunfähigkeit" in text_lower or "berufsunfaehigkeit" in text_lower or "bu-rente" in text_lower:
-        return "berufsunfaehigkeit"
-
-    # PKV
-    if "private krankenversicherung" in text_lower or "krankenvollversicherung" in text_lower or "pkv" in text_lower:
-        return "krankenversicherung"
-
+    for contract_key, patterns in CONTRACT_RULES:
+        if any(p.search(text) for p in patterns):
+            return contract_key
     return None

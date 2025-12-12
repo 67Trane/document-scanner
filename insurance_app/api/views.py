@@ -40,6 +40,15 @@ class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.select_related("customer").all()
     serializer_class = DocumentSerializer
 
+    def get_queryset(self):
+        qs = Document.objects.select_related("customer").all()
+
+        customer_id = self.request.query_params.get("customer")
+        if customer_id:
+            qs = qs.filter(customer_id=customer_id)
+
+        return qs
+
 
 class DocumentImportView(APIView):
     permission_classes = [AllowAny]
