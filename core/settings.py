@@ -34,6 +34,13 @@ allowed_hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [host.strip()
                  for host in allowed_hosts_env.split(",") if host.strip()]
 
+# cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+
+# CORS_ALLOWED_ORIGINS = [
+#     origin.strip()
+#     for origin in cors_origins_env.split(",")
+#     if origin.strip()
+# ]
 
 # Application definition
 
