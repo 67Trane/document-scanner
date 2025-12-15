@@ -19,9 +19,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ["id", "created_at", "customer"]
 
+
     def get_file_url(self, obj):
-        request = self.context.get("request")
-        if not request:
-            return None
-        url = reverse("document_file", args=[obj.pk])
-        return request.build_absolute_uri(url)
+        # IMPORTANT: return RELATIVE URL
+        return reverse("document_file", kwargs={"pk": obj.pk})

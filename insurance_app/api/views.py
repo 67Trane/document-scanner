@@ -143,7 +143,7 @@ class DocumentImportView(APIView):
 
         document = Document.objects.create(
             customer=customer,
-            file_path=new_file_path,  # ⬅️ wichtig: neuer Pfad!
+            file_path=new_file_path,
             raw_text=raw_text,
             policy_number=policy_number,
             license_plates=license_plates,

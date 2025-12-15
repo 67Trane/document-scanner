@@ -34,18 +34,17 @@ allowed_hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [host.strip()
                  for host in allowed_hosts_env.split(",") if host.strip()]
 
-# cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
 
-# CORS_ALLOWED_ORIGINS = [
-#     origin.strip()
-#     for origin in cors_origins_env.split(",")
-#     if origin.strip()
-# ]
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in cors_origins_env.split(",")
+    if origin.strip()
+]
 
 # Application definition
 
 INSTALLED_APPS = [
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -161,5 +160,4 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# CUSTOMER_DOCUMENT_ROOT = "/Kunden/Dokumente"
-CUSTOMER_DOCUMENT_ROOT = r"C:\Users\67Trane\epson-test\test-runs\customer-documents"
+CUSTOMER_DOCUMENT_ROOT = os.getenv("CUSTOMER_DOCUMENT_ROOT")
