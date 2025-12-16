@@ -1,14 +1,14 @@
 
 from django.db import models
 from django.utils import timezone
-
+from django.db.models.functions import Lower
 
 class Customer(models.Model):
     ACTIVE_STATUS = [
         ("aktiv", "Aktiv"),
         ("ruhend", "Ruhend"),
     ]
-    
+
     customer_number = models.CharField(
         max_length=11,  # "YYYY-XXXXXX" -> 4 + 1 + 6 = 11
         unique=True,
@@ -16,7 +16,7 @@ class Customer(models.Model):
         blank=True,
         db_index=True
     )
-    
+
     active_status = models.CharField(
         max_length=50,
         choices=ACTIVE_STATUS,
@@ -31,7 +31,8 @@ class Customer(models.Model):
     phone = models.CharField(max_length=50, blank=True)
     street = models.CharField(max_length=255, blank=True)
     zip_code = models.CharField(max_length=10, blank=True, db_index=True)
-    city = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    city = models.CharField(max_length=100, blank=True,
+                            null=True, db_index=True)
     country = models.CharField(max_length=100, default="Germany")
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -70,6 +71,17 @@ class Customer(models.Model):
             next_seq = 1
 
         return f"{year}-{next_seq:06d}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                Lower("first_name"),
+                Lower("last_name"),
+                Lower("zip_code"),
+                Lower("street"),
+                name="uniq_customer_identity_ci",
+            )
+        ]
 
 
 class Document(models.Model):

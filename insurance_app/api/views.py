@@ -6,6 +6,7 @@ from django.http import FileResponse, Http404
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 import os
+from django.db import transaction, IntegrityError
 
 from ..models import Customer, Document
 from .serializers import CustomerSerializer, DocumentSerializer
@@ -91,33 +92,70 @@ class DocumentImportView(APIView):
             "active_status": infos.get("active_status")
         }
 
-        # ---- Versuche, existierenden Customer zu finden ----
-        lookup = {
-            "first_name": customer_data["first_name"],
-            "last_name": customer_data["last_name"],
-            "zip_code": customer_data["zip_code"],
-            "street": customer_data["street"],
-        }
+        # ---- Customer finden oder anlegen ----
+        first_name = (customer_data.get("first_name") or "").strip()
+        last_name = (customer_data.get("last_name") or "").strip()
+        zip_code = (customer_data.get("zip_code") or "").strip()
+        street = (customer_data.get("street") or "").strip()
 
-        qs = Customer.objects.all()
-        for field, value in lookup.items():
-            if value:
-                qs = qs.filter(**{field: value})
-
-        customer = qs.first()
         created = False
+        customer = None
 
+        # 1) OCR-robuster Kandidaten-Check (Adresse)
+        address_candidates = Customer.objects.filter(
+            street__iexact=street,
+            zip_code=zip_code,
+        )
+
+        if address_candidates.count() == 1:
+            # genau 1 Person an der Adresse -> nimm die, egal ob OCR den Vornamen verhunzt
+            customer = address_candidates.first()
+        elif address_candidates.count() > 1:
+            # mehrere Personen an der Adresse -> nicht automatisch raten
+            return Response(
+                {
+                    "error": "Mehrere Kunden an dieser Adresse gefunden. Bitte manuell auswählen.",
+                    "candidates": [
+                        {
+                            "id": c.id,
+                            "first_name": c.first_name,
+                            "last_name": c.last_name,
+                            "customer_number": c.customer_number,
+                        }
+                        for c in address_candidates
+                    ],
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        # 2) Wenn kein eindeutiger Kandidat: exact lookup (dein bisheriger Weg)
         if not customer:
-            # Neuen Customer anlegen
-            serializer = CustomerSerializer(data=customer_data)
-            serializer.is_valid(raise_exception=True)
-            customer = serializer.save()
-            created = True
-        print("startet:")
-        # ---- PDF in Kundenordner verschieben ----
+            lookup = {
+                "first_name": first_name,
+                "last_name": last_name,
+                "zip_code": zip_code,
+                "street": street,
+            }
+            lookup = {k: v for k, v in lookup.items() if v}
+
+            customer = Customer.objects.filter(**lookup).first()
+
+        # 3) Wenn immer noch keiner: anlegen (atomic + IntegrityError)
+        if not customer:
+            try:
+                with transaction.atomic():
+                    serializer = CustomerSerializer(data=customer_data)
+                    serializer.is_valid(raise_exception=True)
+                    customer = serializer.save()
+                    created = True
+            except IntegrityError:
+                customer = Customer.objects.get(**lookup)
+                created = False
+
+
+        # ---- PDF in Kundenordner verschieben (IMMER nach customer!) ----
         try:
             new_file_path = move_pdf_to_customer_folder(pdf_path, customer)
-            print("wurde erstellt")
         except FileNotFoundError:
             return Response(
                 {"error": f"Datei nicht gefunden (beim Verschieben): {pdf_path}"},
@@ -133,6 +171,7 @@ class DocumentImportView(APIView):
                 {"error": f"Unerwarteter Fehler beim Verschieben der Datei: {e}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
 
         # ---- Document anlegen ----
         raw_text = infos.get("raw_text", "")
