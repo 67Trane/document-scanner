@@ -90,18 +90,20 @@ class DocumentImportView(APIView):
         try:
             customer, created = find_or_create_customer(customer_data)
         except AmbiguousCustomerError as e:
+            candidates_list = []
+
+            for customer in e.candidates:
+                candidates_list.append({
+                    "id": customer.id,
+                    "first_name": customer.first_name,
+                    "last_name": customer.last_name,
+                    "customer_number": customer.customer_number,
+                })
+
             return Response(
                 {
                     "error": "Multiple customers found at this address.",
-                    "candidates": [
-                        {
-                            "id": c.id,
-                            "first_name": c.first_name,
-                            "last_name": c.last_name,
-                            "customer_number": c.customer_number,
-                        }
-                        for c in e.candidates
-                    ],
+                    "candidates": candidates_list,
                 },
                 status=status.HTTP_409_CONFLICT,
             )

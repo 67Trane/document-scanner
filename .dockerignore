@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtualenv
+.venv/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# Env
+.env
+.env.*
+
+# Node / Frontend (falls im Repo)
+node_modules/
+dist/
+
+# Django
+*.sqlite3
+media/
+staticfiles/
+
+# OS
+.DS_Store
+Thumbs.db

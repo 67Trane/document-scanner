@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Lower
 
+
 class Customer(models.Model):
     ACTIVE_STATUS = [
         ("aktiv", "Aktiv"),
@@ -22,6 +23,7 @@ class Customer(models.Model):
         choices=ACTIVE_STATUS,
         null=True,
         blank=True,
+        default="aktiv"
     )
     salutation = models.CharField(max_length=10, blank=True)
     first_name = models.CharField(max_length=100, blank=True, db_index=True)
@@ -73,6 +75,17 @@ class Customer(models.Model):
         return f"{year}-{next_seq:06d}"
 
     class Meta:
+        indexes = [
+            models.Index(fields=["customer_number"]),
+            models.Index(fields=["last_name"]),
+            models.Index(fields=["first_name"]),
+            models.Index(fields=["email"]),
+            models.Index(fields=["zip_code"]),
+            models.Index(fields=["city"]),
+            models.Index(fields=["street"]),
+            models.Index(fields=["street", "zip_code"]),
+        ]
+
         constraints = [
             models.UniqueConstraint(
                 Lower("first_name"),
