@@ -18,27 +18,28 @@ from ..services.customer_matching import (
 )
 
 
+
 class CustomerViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
     serializer_class = CustomerSerializer
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Customer.objects.all()
+        qs = Customer.objects.all()
 
-        # Optional search query
-        q = self.request.query_params.get("q")
+        q = (self.request.query_params.get("q") or "").strip()
         if q:
-            q = q.strip()
-            queryset = queryset.filter(
-                Q(first_name__icontains=q)
-                | Q(last_name__icontains=q)
-                | Q(email__icontains=q)
-                | Q(zip_code__icontains=q)
-                | Q(city__icontains=q)
-                | Q(customer_number__icontains=q)
-            )
+            tokens = [t for t in q.split() if t]
+            for t in tokens:
+                qs = qs.filter(
+                    Q(first_name__icontains=t)
+                    | Q(last_name__icontains=t)
+                    | Q(email__icontains=t)
+                    | Q(zip_code__icontains=t)
+                    | Q(city__icontains=t)
+                    | Q(customer_number__icontains=t)
+                )
 
-        return queryset
+        return qs.order_by("id")
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
