@@ -39,6 +39,8 @@ class Customer(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True)
+
 
     def __str__(self):
         return f"{self.customer_number or '-'} - {self.first_name} {self.last_name}".strip()
