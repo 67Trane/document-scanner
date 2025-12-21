@@ -27,6 +27,7 @@ class CustomerSerializer(serializers.ModelSerializer):
 class DocumentSerializer(serializers.ModelSerializer):
     customer = CustomerSerializer(read_only=True)
     file_url = serializers.SerializerMethodField()
+    contract_typ_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -36,3 +37,7 @@ class DocumentSerializer(serializers.ModelSerializer):
     def get_file_url(self, obj):
         # IMPORTANT: return RELATIVE URL
         return reverse("document_file", kwargs={"pk": obj.pk})
+
+    def get_contract_typ_display(self, obj):
+        # IMPORTANT: Django provides get_<field>_display() for choices
+        return obj.get_contract_typ_display() if obj.contract_typ else None

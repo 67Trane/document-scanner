@@ -45,7 +45,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
 class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     serializer_class = DocumentSerializer
-    queryset = Document.objects.select_related("customer")
+    queryset = Document.objects.select_related("customer").order_by("-id")
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -71,73 +71,25 @@ class DocumentImportView(APIView):
             )
 
         # 1) Extract data from PDF
-        try:
-            infos = extract_pdf_text(pdf_path)
-        except FileNotFoundError:
-            return Response(
-                {"error": f"File not found: {pdf_path}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception as e:
-            return Response(
-                {"error": f"Failed to read PDF: {e}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        infos, error_response = self._extract_infos(pdf_path)
+        if error_response:
+            return error_response
 
         # 2) Build customer payload from OCR data
         customer_data = self._build_customer_data(infos)
 
         # 3) Find or create customer (OCR-safe logic lives in service)
-        try:
-            customer, created = find_or_create_customer(customer_data)
-        except AmbiguousCustomerError as e:
-            candidates_list = []
-
-            for customer in e.candidates:
-                candidates_list.append({
-                    "id": customer.id,
-                    "first_name": customer.first_name,
-                    "last_name": customer.last_name,
-                    "customer_number": customer.customer_number,
-                })
-
-            return Response(
-                {
-                    "error": "Multiple customers found at this address.",
-                    "candidates": candidates_list,
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
+        customer, created, error_response = self._resolve_customer(customer_data)
+        if error_response:
+            return error_response
 
         # 4) Move PDF into customer folder
-        try:
-            new_file_path = move_pdf_to_customer_folder(pdf_path, customer)
-        except FileNotFoundError:
-            return Response(
-                {"error": f"File not found while moving: {pdf_path}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except (ValueError, ValidationError) as e:
-            return Response(
-                {"error": f"Invalid file operation: {e}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception as e:
-            return Response(
-                {"error": f"Unexpected file error: {e}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        new_file_path, error_response = self._move_pdf(pdf_path, customer)
+        if error_response:
+            return error_response
 
         # 5) Create document entry
-        document = Document.objects.create(
-            customer=customer,
-            file_path=new_file_path,
-            raw_text=infos.get("raw_text", ""),
-            policy_number=infos.get("policy_number"),
-            license_plates=infos.get("license_plates") or [],
-            contract_typ=infos.get("contract_typ"),
-            contract_status=infos.get("contract_status") or "aktiv",
-        )
+        document = self._create_document(customer, new_file_path, infos)
 
         return Response(
             {
@@ -148,6 +100,72 @@ class DocumentImportView(APIView):
                 ).data,
             },
             status=status.HTTP_201_CREATED,
+        )
+
+    def _extract_infos(self, pdf_path):
+        try:
+            return extract_pdf_text(pdf_path), None
+        except FileNotFoundError:
+            return None, Response(
+                {"error": f"File not found: {pdf_path}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            return None, Response(
+                {"error": f"Failed to read PDF: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _resolve_customer(self, customer_data):
+        try:
+            customer, created = find_or_create_customer(customer_data)
+            return customer, created, None
+        except AmbiguousCustomerError as e:
+            candidates_list = [
+                {
+                    "id": customer.id,
+                    "first_name": customer.first_name,
+                    "last_name": customer.last_name,
+                    "customer_number": customer.customer_number,
+                }
+                for customer in e.candidates
+            ]
+            return None, None, Response(
+                {
+                    "error": "Multiple customers found at this address.",
+                    "candidates": candidates_list,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+    def _move_pdf(self, pdf_path, customer):
+        try:
+            return move_pdf_to_customer_folder(pdf_path, customer), None
+        except FileNotFoundError:
+            return None, Response(
+                {"error": f"File not found while moving: {pdf_path}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except (ValueError, ValidationError) as e:
+            return None, Response(
+                {"error": f"Invalid file operation: {e}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            return None, Response(
+                {"error": f"Unexpected file error: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _create_document(self, customer, new_file_path, infos):
+        return Document.objects.create(
+            customer=customer,
+            file_path=new_file_path,
+            raw_text=infos.get("raw_text", ""),
+            policy_number=infos.get("policy_number"),
+            license_plates=infos.get("license_plates") or [],
+            contract_typ=infos.get("contract_typ"),
+            contract_status=infos.get("contract_status") or "aktiv",
         )
 
     def _build_customer_data(self, infos: dict) -> dict:
@@ -166,7 +184,7 @@ class DocumentImportView(APIView):
             "email": infos.get("email") or "",
             "phone": infos.get("phone") or "",
             "date_of_birth": infos.get("date_of_birth"),
-            "active_status": infos.get("active_status"),
+            "active_status": infos.get("active_status") or "aktiv",
         }
 
 
