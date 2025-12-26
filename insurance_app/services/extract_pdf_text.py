@@ -62,7 +62,7 @@ class ExtractedPDFData:
     country: str = "Germany"
 
     # Contract / vehicle
-    policy_number: Optional[str] = None
+    policy_numbers: Optional[str] = None
     license_plates: List[str] = None
     contract_typ: Optional[str] = None
 
@@ -85,7 +85,7 @@ def extract_pdf_text(pdf_file: str) -> dict:
     address = _extract_address_block(normalized)
     first_name, last_name = _split_name(address.name) if address else ("", "")
 
-    policy_number = extract_policy_number(normalized)
+    policy_numbers = extract_policy_numbers(normalized)
     license_plate = extract_license_plate(normalized)
     contract_type = extract_contract_type(normalized)
 
@@ -100,7 +100,7 @@ def extract_pdf_text(pdf_file: str) -> dict:
         zip_code=address.zip_code if address else "",
         city=address.city if address else "",
 
-        policy_number=policy_number,
+        policy_numbers=policy_numbers,
         license_plates=[license_plate] if license_plate else [],
         contract_typ=contract_type,
     )
@@ -177,7 +177,7 @@ def _split_name(full_name: str) -> tuple[str, str]:
 # Other extractors
 # -------------------------
 
-def extract_policy_number(text: str) -> Optional[str]:
+def extract_policy_numbers(text: str) -> Optional[str]:
     m = RE_POLICY_NUMBER.search(text)
     return m.group(0) if m else None
 
@@ -220,7 +220,8 @@ CONTRACT_RULES: list[tuple[str, list[re.Pattern[str]]]] = [
         re.compile(r"berufsunfähigkeit|berufsunfaehigkeit|bu-rente", re.I),
     ]),
     ("krankenversicherung", [
-        re.compile(r"private krankenversicherung|krankenvollversicherung|\bpkv\b", re.I),
+        re.compile(
+            r"private krankenversicherung|krankenvollversicherung|\bpkv\b", re.I),
     ]),
 ]
 

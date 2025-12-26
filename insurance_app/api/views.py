@@ -162,7 +162,7 @@ class DocumentImportView(APIView):
             customer=customer,
             file_path=new_file_path,
             raw_text=infos.get("raw_text", ""),
-            policy_number=infos.get("policy_number"),
+            policy_numbers=infos.get("policy_numbers"),
             license_plates=infos.get("license_plates") or [],
             contract_typ=infos.get("contract_typ"),
             contract_status=infos.get("contract_status") or "aktiv",

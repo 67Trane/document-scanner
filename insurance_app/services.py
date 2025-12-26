@@ -10,7 +10,6 @@ from django.utils.text import slugify
 from .models import Customer
 
 
-# Entweder absoluter Pfad, oder aus settings laden:
 CUSTOMER_DOCUMENT_ROOT = Path(
     getattr(settings, "CUSTOMER_DOCUMENT_ROOT", "/Kunden/Dokumente"))
 

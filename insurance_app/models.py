@@ -130,7 +130,7 @@ class Document(models.Model):
 
     file_path = models.CharField(max_length=512)
     raw_text = models.TextField(blank=True, null=True)
-    policy_number = models.CharField(max_length=100, null=True, blank=True)
+    policy_numbers = models.JSONField(default=list, blank=True)
     license_plates = models.JSONField(default=list, blank=True)
 
     contract_status = models.CharField(
