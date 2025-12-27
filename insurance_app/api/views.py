@@ -2,6 +2,9 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from authentication_app.api.permissions import IsInWhitelistGroup
+from authentication_app.api.permissions import HasImportToken
 
 from django.http import FileResponse, Http404
 from django.db.models import Q
@@ -21,7 +24,7 @@ from ..services.customer_matching import (
 
 class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsInWhitelistGroup]
 
     def get_queryset(self):
         qs = Customer.objects.all()
@@ -43,7 +46,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsInWhitelistGroup]
     serializer_class = DocumentSerializer
     queryset = Document.objects.select_related("customer").order_by("-id")
 
@@ -59,7 +62,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
 
 class DocumentImportView(APIView):
-    permission_classes = [AllowAny]
+    authentication_classes = []    
+    permission_classes = [HasImportToken]
+    
 
     def post(self, request):
         pdf_path = request.data.get("pdf_path")
@@ -189,7 +194,7 @@ class DocumentImportView(APIView):
 
 
 class DocumentFileView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsInWhitelistGroup]
 
     def get(self, request, pk):
         try:
