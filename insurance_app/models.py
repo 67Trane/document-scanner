@@ -142,4 +142,4 @@ class Document(models.Model):
         policy = None
         if isinstance(self.policy_numbers, list) and self.policy_numbers:
             policy = self.policy_numbers[0]
-        return f"Document {self.id} ({policy or 'no policy'})"
+        return f"Document {self.id} ({policy or 'no policy'}) {self.customer}"

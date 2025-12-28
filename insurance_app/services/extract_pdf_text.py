@@ -13,7 +13,7 @@ import pdfplumber
 
 RE_MULTI_SPACE = re.compile(r"[ \t]+")
 RE_MULTI_NEWLINES = re.compile(r"\n{2,}")
-RE_JOIN_SALUTATION_LINEBREAK = re.compile(r"(Herr|Frau)\s*\n\s*([A-ZÄÖÜ])")
+RE_JOIN_SALUTATION_LINEBREAK = re.compile(r"(Herrn?|Frau)\s*\n\s*([A-ZÄÖÜ])")
 
 # Keep newlines, keep common punctuation, strip weird OCR artifacts
 RE_OCR_GARBAGE = re.compile(r"[^0-9A-Za-zÄÖÜäöüß.,:/()\-\n ]")
@@ -23,13 +23,13 @@ RE_OCR_GARBAGE = re.compile(r"[^0-9A-Za-zÄÖÜäöüß.,:/()\-\n ]")
 #   <Street>
 #   <ZIP> <City>
 RE_ADDRESS_BLOCK = re.compile(
-    r"(?m)^(Herr|Frau)\s+([^\n]+)\n"  # salutation + name
-    r"([A-ZÄÖÜ][^\n]+)\n"  # street
-    r"(\d{5})\s+([A-Za-zÄÖÜäöüß ]+)\s*$"  # zip + city
+    r"(?m)^(Herrn?|Frau)\s+([^\n]+)\n"
+    r"([A-ZÄÖÜ][^\n]+)\n"
+    r"(\d{5})\s+([A-Za-zÄÖÜäöüß \-]+)\s*$"
 )
 
 # Fallback greeting (less reliable; last name only often)
-RE_GREETING_FALLBACK = re.compile(r"Sehr geehrter\s+(Herr|Frau)\s+([A-ZÄÖÜ][^\s,]+)")
+RE_GREETING_FALLBACK = re.compile(r"Sehr geehrter\s+(Herrn?|Frau)\s+([A-ZÄÖÜ][^\s,]+)")
 
 # Policy number example: "K 177-332804/1"
 RE_POLICY_NUMBER = re.compile(r"\bK\s*\d{3}-\d{6}/\d+\b")
