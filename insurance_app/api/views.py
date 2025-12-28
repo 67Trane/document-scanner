@@ -1,15 +1,15 @@
-from rest_framework import viewsets, status
-from rest_framework.permissions import AllowAny
+import logging
+import os
+
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.http import FileResponse, Http404
+from rest_framework import status, viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from authentication_app.api.permissions import IsInWhitelistGroup
-from authentication_app.api.permissions import HasImportToken
 
-from django.http import FileResponse, Http404
-from django.db.models import Q
-from django.core.exceptions import ValidationError
-import os
+from authentication_app.api.permissions import HasImportToken, IsInWhitelistGroup
 
 from ..models import Customer, Document
 from .serializers import CustomerSerializer, DocumentSerializer
@@ -20,12 +20,15 @@ from ..services.customer_matching import (
     AmbiguousCustomerError,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
 
     def get_queryset(self):
+        """Return customers filtered by optional search tokens."""
         qs = Customer.objects.all()
 
         q = (self.request.query_params.get("q") or "").strip()
@@ -50,6 +53,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.select_related("customer").order_by("-id")
 
     def get_queryset(self):
+        """Return documents with an optional customer filter."""
         queryset = super().get_queryset()
 
         # Optional filter by customer id
@@ -65,13 +69,16 @@ class DocumentImportView(APIView):
     permission_classes = [HasImportToken]
 
     def post(self, request):
+        """Import a PDF from disk and create customer/document records."""
         pdf_path = request.data.get("pdf_path")
 
-        if not pdf_path:
+        if not isinstance(pdf_path, str) or not pdf_path.strip():
             return Response(
                 {"error": "pdf_path is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        pdf_path = pdf_path.strip()
 
         # 1) Extract data from PDF
         infos, error_response = self._extract_infos(pdf_path)
@@ -113,9 +120,10 @@ class DocumentImportView(APIView):
                 {"error": f"File not found: {pdf_path}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as e:
+        except Exception:
+            logger.exception("Failed to read PDF", extra={"pdf_path": pdf_path})
             return None, Response(
-                {"error": f"Failed to read PDF: {e}"},
+                {"error": "Failed to read PDF."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -158,9 +166,13 @@ class DocumentImportView(APIView):
                 {"error": f"Invalid file operation: {e}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as e:
+        except Exception:
+            logger.exception(
+                "Unexpected file error while moving PDF",
+                extra={"pdf_path": pdf_path, "customer_id": customer.id},
+            )
             return None, Response(
-                {"error": f"Unexpected file error: {e}"},
+                {"error": "Unexpected file error while moving PDF."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -178,7 +190,7 @@ class DocumentImportView(APIView):
     def _build_customer_data(self, infos: dict) -> dict:
         """
         Build a clean customer payload from OCR data.
-        Keep normalization minimal – matching logic lives elsewhere.
+        Keep normalization minimal; matching logic lives elsewhere.
         """
         return {
             "salutation": infos.get("salutation") or "",
@@ -199,6 +211,7 @@ class DocumentFileView(APIView):
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
 
     def get(self, request, pk):
+        """Return the stored PDF file for a document."""
         try:
             document = Document.objects.get(pk=pk)
         except Document.DoesNotExist:

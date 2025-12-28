@@ -79,6 +79,7 @@ class ExtractedPDFData:
 
 
 def extract_pdf_text(pdf_file: str) -> dict:
+    """Extract structured data from a PDF and return a dict payload."""
     raw_text = _read_pdf_text(pdf_file)
     normalized = normalize_text(raw_text)
 
@@ -117,6 +118,7 @@ def _read_pdf_text(pdf_file: str) -> str:
 
 
 def normalize_text(text: str) -> str:
+    """Normalize OCR text for downstream parsing."""
     text = text.replace("\r", "")
     text = RE_MULTI_SPACE.sub(" ", text)
     text = RE_MULTI_NEWLINES.sub("\n", text)
@@ -179,11 +181,13 @@ def _split_name(full_name: str) -> tuple[str, str]:
 
 
 def extract_policy_numbers(text: str) -> Optional[str]:
+    """Return the first matching policy number, if any."""
     m = RE_POLICY_NUMBER.search(text)
     return m.group(0) if m else None
 
 
 def extract_license_plate(text: str) -> Optional[str]:
+    """Return the first matching license plate, if any."""
     m = RE_LICENSE_PLATE.search(text)
     return m.group(0) if m else None
 
@@ -253,6 +257,7 @@ CONTRACT_RULES: list[tuple[str, list[re.Pattern[str]]]] = [
 
 
 def extract_contract_type(text: str) -> Optional[str]:
+    """Return the first matching contract type key, if any."""
     for contract_key, patterns in CONTRACT_RULES:
         if any(p.search(text) for p in patterns):
             return contract_key

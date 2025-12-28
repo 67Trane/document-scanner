@@ -9,6 +9,7 @@ class AmbiguousCustomerError(Exception):
 
 
 def find_or_create_customer(customer_data: dict):
+    """Find a customer by OCR-derived data or create one if none exists."""
     first_name = (customer_data.get("first_name") or "").strip()
     last_name = (customer_data.get("last_name") or "").strip()
     zip_code = (customer_data.get("zip_code") or "").strip()

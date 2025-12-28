@@ -139,4 +139,7 @@ class Document(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Document {self.id} ({self.policy_number or 'no policy'})"
+        policy = None
+        if isinstance(self.policy_numbers, list) and self.policy_numbers:
+            policy = self.policy_numbers[0]
+        return f"Document {self.id} ({policy or 'no policy'})"

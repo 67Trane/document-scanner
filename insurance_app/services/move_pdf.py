@@ -4,6 +4,7 @@ from django.conf import settings
 
 
 def move_pdf_to_customer_folder(pdf_path: str, customer) -> str:
+    """Move a PDF into the customer folder and return the new path."""
     # IMPORTANT: store files under configured root (env-based)
     base_dir = getattr(settings, "CUSTOMER_DOCUMENT_ROOT", None)
     if not base_dir:
