@@ -8,175 +8,230 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('insurance_app', '0001_initial'),
+        ("insurance_app", "0001_initial"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='document',
-            old_name='uploaded_at',
-            new_name='created_at',
+            model_name="document",
+            old_name="uploaded_at",
+            new_name="created_at",
         ),
         migrations.RenameField(
-            model_name='document',
-            old_name='ocr_text',
-            new_name='raw_text',
+            model_name="document",
+            old_name="ocr_text",
+            new_name="raw_text",
         ),
         migrations.RemoveField(
-            model_name='customer',
-            name='license_plates',
+            model_name="customer",
+            name="license_plates",
         ),
         migrations.RemoveField(
-            model_name='customer',
-            name='policy_number',
+            model_name="customer",
+            name="policy_number",
         ),
         migrations.RemoveField(
-            model_name='document',
-            name='document_type',
+            model_name="document",
+            name="document_type",
         ),
         migrations.RemoveField(
-            model_name='document',
-            name='insurance_company_name',
+            model_name="document",
+            name="insurance_company_name",
         ),
         migrations.RemoveField(
-            model_name='document',
-            name='insurance_type_name',
+            model_name="document",
+            name="insurance_type_name",
         ),
         migrations.RemoveField(
-            model_name='document',
-            name='original_filename',
+            model_name="document",
+            name="original_filename",
         ),
         migrations.RemoveField(
-            model_name='document',
-            name='source',
+            model_name="document",
+            name="source",
         ),
         migrations.RemoveField(
-            model_name='document',
-            name='tags',
+            model_name="document",
+            name="tags",
         ),
         migrations.RemoveField(
-            model_name='document',
-            name='title',
+            model_name="document",
+            name="title",
         ),
         migrations.AddField(
-            model_name='customer',
-            name='active_status',
-            field=models.CharField(blank=True, choices=[('aktiv', 'Aktiv'), ('ruhend', 'Ruhend')], default='aktiv', max_length=50, null=True),
+            model_name="customer",
+            name="active_status",
+            field=models.CharField(
+                blank=True,
+                choices=[("aktiv", "Aktiv"), ("ruhend", "Ruhend")],
+                default="aktiv",
+                max_length=50,
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='customer',
-            name='customer_number',
-            field=models.CharField(blank=True, db_index=True, max_length=11, null=True, unique=True),
+            model_name="customer",
+            name="customer_number",
+            field=models.CharField(
+                blank=True, db_index=True, max_length=11, null=True, unique=True
+            ),
         ),
         migrations.AddField(
-            model_name='customer',
-            name='notes',
+            model_name="customer",
+            name="notes",
             field=models.TextField(blank=True),
         ),
         migrations.AddField(
-            model_name='document',
-            name='contract_status',
-            field=models.CharField(choices=[('aktiv', 'Aktiv'), ('ruhend', 'Ruhend')], default='aktiv', max_length=20),
+            model_name="document",
+            name="contract_status",
+            field=models.CharField(
+                choices=[("aktiv", "Aktiv"), ("ruhend", "Ruhend")],
+                default="aktiv",
+                max_length=20,
+            ),
         ),
         migrations.AddField(
-            model_name='document',
-            name='contract_typ',
-            field=models.CharField(blank=True, choices=[('kfz', 'Kfz-Versicherung'), ('haftpflicht', 'Privat-Haftpflicht'), ('hausrat', 'Hausrat'), ('rechtschutz', 'Rechtsschutz'), ('wohngebaeude', 'Wohngebäudeversicherung'), ('unfall', 'Unfallversicherung'), ('lebensversicherung', 'Lebensversicherung'), ('berufsunfaehigkeit', 'Berufsunfähigkeitsversicherung'), ('krankenversicherung', 'Private Krankenversicherung'), ('tierversicherung', 'Tierhalterhaftpflicht / Tierkranken'), ('reise', 'Reiseversicherung')], max_length=50, null=True),
+            model_name="document",
+            name="contract_typ",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("kfz", "Kfz-Versicherung"),
+                    ("haftpflicht", "Privat-Haftpflicht"),
+                    ("hausrat", "Hausrat"),
+                    ("rechtschutz", "Rechtsschutz"),
+                    ("wohngebaeude", "Wohngebäudeversicherung"),
+                    ("unfall", "Unfallversicherung"),
+                    ("lebensversicherung", "Lebensversicherung"),
+                    ("berufsunfaehigkeit", "Berufsunfähigkeitsversicherung"),
+                    ("krankenversicherung", "Private Krankenversicherung"),
+                    ("tierversicherung", "Tierhalterhaftpflicht / Tierkranken"),
+                    ("reise", "Reiseversicherung"),
+                ],
+                max_length=50,
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='document',
-            name='license_plates',
+            model_name="document",
+            name="license_plates",
             field=models.JSONField(blank=True, default=list),
         ),
         migrations.AddField(
-            model_name='document',
-            name='policy_numbers',
+            model_name="document",
+            name="policy_numbers",
             field=models.JSONField(blank=True, default=list),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='city',
-            field=models.CharField(blank=True, db_index=True, max_length=100, null=True),
+            model_name="customer",
+            name="city",
+            field=models.CharField(
+                blank=True, db_index=True, max_length=100, null=True
+            ),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='email',
-            field=models.EmailField(blank=True, db_index=True, max_length=254, null=True),
+            model_name="customer",
+            name="email",
+            field=models.EmailField(
+                blank=True, db_index=True, max_length=254, null=True
+            ),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='first_name',
+            model_name="customer",
+            name="first_name",
             field=models.CharField(blank=True, db_index=True, max_length=100),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='last_name',
+            model_name="customer",
+            name="last_name",
             field=models.CharField(blank=True, db_index=True, max_length=100),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='phone',
+            model_name="customer",
+            name="phone",
             field=models.CharField(blank=True, max_length=50),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='salutation',
+            model_name="customer",
+            name="salutation",
             field=models.CharField(blank=True, max_length=10),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='street',
+            model_name="customer",
+            name="street",
             field=models.CharField(blank=True, max_length=255),
         ),
         migrations.AlterField(
-            model_name='customer',
-            name='zip_code',
+            model_name="customer",
+            name="zip_code",
             field=models.CharField(blank=True, db_index=True, max_length=10),
         ),
         migrations.AlterField(
-            model_name='document',
-            name='customer',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='insurance_app.customer'),
+            model_name="document",
+            name="customer",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="documents",
+                to="insurance_app.customer",
+            ),
         ),
         migrations.AlterField(
-            model_name='document',
-            name='file_path',
+            model_name="document",
+            name="file_path",
             field=models.CharField(max_length=512),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['customer_number'], name='insurance_a_custome_5287ba_idx'),
+            model_name="customer",
+            index=models.Index(
+                fields=["customer_number"], name="insurance_a_custome_5287ba_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['last_name'], name='insurance_a_last_na_8a186c_idx'),
+            model_name="customer",
+            index=models.Index(
+                fields=["last_name"], name="insurance_a_last_na_8a186c_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['first_name'], name='insurance_a_first_n_ba8559_idx'),
+            model_name="customer",
+            index=models.Index(
+                fields=["first_name"], name="insurance_a_first_n_ba8559_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['email'], name='insurance_a_email_cebe9a_idx'),
+            model_name="customer",
+            index=models.Index(fields=["email"], name="insurance_a_email_cebe9a_idx"),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['zip_code'], name='insurance_a_zip_cod_fe38c7_idx'),
+            model_name="customer",
+            index=models.Index(
+                fields=["zip_code"], name="insurance_a_zip_cod_fe38c7_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['city'], name='insurance_a_city_429ba9_idx'),
+            model_name="customer",
+            index=models.Index(fields=["city"], name="insurance_a_city_429ba9_idx"),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['street'], name='insurance_a_street_1b6018_idx'),
+            model_name="customer",
+            index=models.Index(fields=["street"], name="insurance_a_street_1b6018_idx"),
         ),
         migrations.AddIndex(
-            model_name='customer',
-            index=models.Index(fields=['street', 'zip_code'], name='insurance_a_street_d7df74_idx'),
+            model_name="customer",
+            index=models.Index(
+                fields=["street", "zip_code"], name="insurance_a_street_d7df74_idx"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='customer',
-            constraint=models.UniqueConstraint(django.db.models.functions.text.Lower('first_name'), django.db.models.functions.text.Lower('last_name'), django.db.models.functions.text.Lower('zip_code'), django.db.models.functions.text.Lower('street'), name='uniq_customer_identity_ci'),
+            model_name="customer",
+            constraint=models.UniqueConstraint(
+                django.db.models.functions.text.Lower("first_name"),
+                django.db.models.functions.text.Lower("last_name"),
+                django.db.models.functions.text.Lower("zip_code"),
+                django.db.models.functions.text.Lower("street"),
+                name="uniq_customer_identity_ci",
+            ),
         ),
     ]

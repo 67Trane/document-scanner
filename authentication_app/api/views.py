@@ -26,7 +26,9 @@ class LoginView(APIView):
 
         user = authenticate(request, username=username, password=password)
         if not user:
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         login(request, user)
 
@@ -51,7 +53,9 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response({
-            "id": request.user.id,
-            "username": request.user.get_username(),
-        })
+        return Response(
+            {
+                "id": request.user.id,
+                "username": request.user.get_username(),
+            }
+        )

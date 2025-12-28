@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Lower
@@ -15,15 +14,11 @@ class Customer(models.Model):
         unique=True,
         null=True,
         blank=True,
-        db_index=True
+        db_index=True,
     )
 
     active_status = models.CharField(
-        max_length=50,
-        choices=ACTIVE_STATUS,
-        null=True,
-        blank=True,
-        default="aktiv"
+        max_length=50, choices=ACTIVE_STATUS, null=True, blank=True, default="aktiv"
     )
     salutation = models.CharField(max_length=10, blank=True)
     first_name = models.CharField(max_length=100, blank=True, db_index=True)
@@ -33,14 +28,12 @@ class Customer(models.Model):
     phone = models.CharField(max_length=50, blank=True)
     street = models.CharField(max_length=255, blank=True)
     zip_code = models.CharField(max_length=10, blank=True, db_index=True)
-    city = models.CharField(max_length=100, blank=True,
-                            null=True, db_index=True)
+    city = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     country = models.CharField(max_length=100, default="Germany")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True)
-
 
     def __str__(self):
         return f"{self.customer_number or '-'} - {self.first_name} {self.last_name}".strip()
@@ -60,8 +53,7 @@ class Customer(models.Model):
 
         # Alle Kunden aus diesem Jahr holen
         last_customer = (
-            cls.objects
-            .filter(customer_number__startswith=str(year))
+            cls.objects.filter(customer_number__startswith=str(year))
             .order_by("-customer_number")
             .first()
         )
@@ -134,9 +126,7 @@ class Document(models.Model):
     license_plates = models.JSONField(default=list, blank=True)
 
     contract_status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="aktiv"
+        max_length=20, choices=STATUS_CHOICES, default="aktiv"
     )
 
     contract_typ = models.CharField(

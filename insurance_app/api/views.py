@@ -21,7 +21,6 @@ from ..services.customer_matching import (
 )
 
 
-
 class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
@@ -62,9 +61,8 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
 
 class DocumentImportView(APIView):
-    authentication_classes = []    
+    authentication_classes = []
     permission_classes = [HasImportToken]
-    
 
     def post(self, request):
         pdf_path = request.data.get("pdf_path")
@@ -135,12 +133,16 @@ class DocumentImportView(APIView):
                 }
                 for customer in e.candidates
             ]
-            return None, None, Response(
-                {
-                    "error": "Multiple customers found at this address.",
-                    "candidates": candidates_list,
-                },
-                status=status.HTTP_409_CONFLICT,
+            return (
+                None,
+                None,
+                Response(
+                    {
+                        "error": "Multiple customers found at this address.",
+                        "candidates": candidates_list,
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                ),
             )
 
     def _move_pdf(self, pdf_path, customer):

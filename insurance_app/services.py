@@ -11,7 +11,8 @@ from .models import Customer
 
 
 CUSTOMER_DOCUMENT_ROOT = Path(
-    getattr(settings, "CUSTOMER_DOCUMENT_ROOT", "/Kunden/Dokumente"))
+    getattr(settings, "CUSTOMER_DOCUMENT_ROOT", "/Kunden/Dokumente")
+)
 
 
 def build_customer_folder_name(customer: Customer) -> str:
@@ -58,8 +59,7 @@ def move_pdf_to_customer_folder(pdf_path_str: str, customer: Customer) -> str:
     # Avoid overwriting existing files
     if target_path.exists():
         timestamp = int(time.time())
-        target_path = customer_folder / \
-            f"{pdf_path.stem}_{timestamp}{pdf_path.suffix}"
+        target_path = customer_folder / f"{pdf_path.stem}_{timestamp}{pdf_path.suffix}"
 
     # Atomic move on same filesystem
     pdf_path.rename(target_path)

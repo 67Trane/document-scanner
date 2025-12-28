@@ -23,15 +23,13 @@ RE_OCR_GARBAGE = re.compile(r"[^0-9A-Za-zÄÖÜäöüß.,:/()\-\n ]")
 #   <Street>
 #   <ZIP> <City>
 RE_ADDRESS_BLOCK = re.compile(
-    r"(?m)^(Herr|Frau)\s+([^\n]+)\n"          # salutation + name
-    r"([A-ZÄÖÜ][^\n]+)\n"                    # street
-    r"(\d{5})\s+([A-Za-zÄÖÜäöüß ]+)\s*$"      # zip + city
+    r"(?m)^(Herr|Frau)\s+([^\n]+)\n"  # salutation + name
+    r"([A-ZÄÖÜ][^\n]+)\n"  # street
+    r"(\d{5})\s+([A-Za-zÄÖÜäöüß ]+)\s*$"  # zip + city
 )
 
 # Fallback greeting (less reliable; last name only often)
-RE_GREETING_FALLBACK = re.compile(
-    r"Sehr geehrter\s+(Herr|Frau)\s+([A-ZÄÖÜ][^\s,]+)"
-)
+RE_GREETING_FALLBACK = re.compile(r"Sehr geehrter\s+(Herr|Frau)\s+([A-ZÄÖÜ][^\s,]+)")
 
 # Policy number example: "K 177-332804/1"
 RE_POLICY_NUMBER = re.compile(r"\bK\s*\d{3}-\d{6}/\d+\b")
@@ -43,6 +41,7 @@ RE_LICENSE_PLATE = re.compile(r"\b[A-Z]{1,3}-[A-Z]{1,2}\s*\d{1,4}\b")
 # -------------------------
 # Output structure
 # -------------------------
+
 
 @dataclass(frozen=True)
 class ExtractedPDFData:
@@ -78,6 +77,7 @@ class ExtractedPDFData:
 # Public API
 # -------------------------
 
+
 def extract_pdf_text(pdf_file: str) -> dict:
     raw_text = _read_pdf_text(pdf_file)
     normalized = normalize_text(raw_text)
@@ -92,14 +92,12 @@ def extract_pdf_text(pdf_file: str) -> dict:
     result = ExtractedPDFData(
         raw_text=raw_text,
         normalized_text=normalized,
-
         salutation=address.salutation if address else "",
         first_name=first_name,
         last_name=last_name,
         street=address.street if address else "",
         zip_code=address.zip_code if address else "",
         city=address.city if address else "",
-
         policy_numbers=policy_numbers,
         license_plates=[license_plate] if license_plate else [],
         contract_typ=contract_type,
@@ -110,6 +108,7 @@ def extract_pdf_text(pdf_file: str) -> dict:
 # -------------------------
 # Reading / normalization
 # -------------------------
+
 
 def _read_pdf_text(pdf_file: str) -> str:
     with pdfplumber.open(pdf_file) as pdf:
@@ -129,6 +128,7 @@ def normalize_text(text: str) -> str:
 # -------------------------
 # Address parsing
 # -------------------------
+
 
 @dataclass(frozen=True)
 class AddressBlock:
@@ -177,6 +177,7 @@ def _split_name(full_name: str) -> tuple[str, str]:
 # Other extractors
 # -------------------------
 
+
 def extract_policy_numbers(text: str) -> Optional[str]:
     m = RE_POLICY_NUMBER.search(text)
     return m.group(0) if m else None
@@ -193,36 +194,61 @@ def extract_license_plate(text: str) -> Optional[str]:
 
 CONTRACT_RULES: list[tuple[str, list[re.Pattern[str]]]] = [
     # Returned values should match your Django CONTRACT_TYPES keys (or whatever you want)
-    ("kfz", [
-        re.compile(r"\bkfz\b", re.I),
-        re.compile(r"kfz[-\s]?versicherung", re.I),
-        re.compile(r"\bkennzeichen\b", re.I),
-        re.compile(r"\bteilkasko\b", re.I),
-    ]),
-    ("hausrat", [
-        re.compile(r"\bhausrat\b", re.I),
-        re.compile(r"hausratversicherung", re.I),
-    ]),
-    ("haftpflicht", [
-        re.compile(r"privathaftpflicht", re.I),
-        re.compile(r"\bhaftpflicht\b", re.I),
-    ]),
-    ("rechtsschutz", [
-        re.compile(r"rechtsschutz|rechtschutz", re.I),
-    ]),
-    ("wohngebaeude", [
-        re.compile(r"wohngebäude|wohngebaeude", re.I),
-    ]),
-    ("unfall", [
-        re.compile(r"unfallversicherung|gliedertaxe", re.I),
-    ]),
-    ("berufsunfaehigkeit", [
-        re.compile(r"berufsunfähigkeit|berufsunfaehigkeit|bu-rente", re.I),
-    ]),
-    ("krankenversicherung", [
-        re.compile(
-            r"private krankenversicherung|krankenvollversicherung|\bpkv\b", re.I),
-    ]),
+    (
+        "kfz",
+        [
+            re.compile(r"\bkfz\b", re.I),
+            re.compile(r"kfz[-\s]?versicherung", re.I),
+            re.compile(r"\bkennzeichen\b", re.I),
+            re.compile(r"\bteilkasko\b", re.I),
+        ],
+    ),
+    (
+        "hausrat",
+        [
+            re.compile(r"\bhausrat\b", re.I),
+            re.compile(r"hausratversicherung", re.I),
+        ],
+    ),
+    (
+        "haftpflicht",
+        [
+            re.compile(r"privathaftpflicht", re.I),
+            re.compile(r"\bhaftpflicht\b", re.I),
+        ],
+    ),
+    (
+        "rechtsschutz",
+        [
+            re.compile(r"rechtsschutz|rechtschutz", re.I),
+        ],
+    ),
+    (
+        "wohngebaeude",
+        [
+            re.compile(r"wohngebäude|wohngebaeude", re.I),
+        ],
+    ),
+    (
+        "unfall",
+        [
+            re.compile(r"unfallversicherung|gliedertaxe", re.I),
+        ],
+    ),
+    (
+        "berufsunfaehigkeit",
+        [
+            re.compile(r"berufsunfähigkeit|berufsunfaehigkeit|bu-rente", re.I),
+        ],
+    ),
+    (
+        "krankenversicherung",
+        [
+            re.compile(
+                r"private krankenversicherung|krankenvollversicherung|\bpkv\b", re.I
+            ),
+        ],
+    ),
 ]
 
 

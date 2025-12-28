@@ -8,45 +8,111 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Customer',
+            name="Customer",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('first_name', models.CharField(max_length=100)),
-                ('last_name', models.CharField(max_length=100)),
-                ('date_of_birth', models.DateField(blank=True, null=True)),
-                ('email', models.EmailField(blank=True, max_length=254, null=True)),
-                ('phone', models.CharField(blank=True, max_length=50, null=True)),
-                ('street', models.CharField(blank=True, max_length=200, null=True)),
-                ('zip_code', models.CharField(blank=True, max_length=20, null=True)),
-                ('city', models.CharField(blank=True, max_length=100, null=True)),
-                ('country', models.CharField(default='Germany', max_length=100)),
-                ('policy_number', models.CharField(blank=True, max_length=20, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('license_plates', models.JSONField(blank=True, default=list)),
-                ('salutation', models.CharField(blank=True, choices=[('Herr', 'Herr'), ('Frau', 'Frau')], max_length=10, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("first_name", models.CharField(max_length=100)),
+                ("last_name", models.CharField(max_length=100)),
+                ("date_of_birth", models.DateField(blank=True, null=True)),
+                ("email", models.EmailField(blank=True, max_length=254, null=True)),
+                ("phone", models.CharField(blank=True, max_length=50, null=True)),
+                ("street", models.CharField(blank=True, max_length=200, null=True)),
+                ("zip_code", models.CharField(blank=True, max_length=20, null=True)),
+                ("city", models.CharField(blank=True, max_length=100, null=True)),
+                ("country", models.CharField(default="Germany", max_length=100)),
+                (
+                    "policy_number",
+                    models.CharField(blank=True, max_length=20, null=True),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("license_plates", models.JSONField(blank=True, default=list)),
+                (
+                    "salutation",
+                    models.CharField(
+                        blank=True,
+                        choices=[("Herr", "Herr"), ("Frau", "Frau")],
+                        max_length=10,
+                        null=True,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Document',
+            name="Document",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('insurance_company_name', models.CharField(blank=True, max_length=200, null=True)),
-                ('insurance_type_name', models.CharField(blank=True, max_length=100, null=True)),
-                ('document_type', models.CharField(choices=[('policy', 'Versicherungsschein'), ('conditions', 'Bedingungen'), ('cancellation', 'Kündigung'), ('invoice', 'Rechnung'), ('other', 'Sonstiges')], default='other', max_length=30)),
-                ('title', models.CharField(max_length=255)),
-                ('file_path', models.CharField(max_length=500)),
-                ('original_filename', models.CharField(blank=True, max_length=255, null=True)),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
-                ('source', models.CharField(choices=[('scanner', 'Scanner'), ('upload', 'Upload'), ('email', 'Email')], default='scanner', max_length=20)),
-                ('tags', models.CharField(blank=True, max_length=255, null=True)),
-                ('ocr_text', models.TextField(blank=True, null=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='insurance_app.customer')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "insurance_company_name",
+                    models.CharField(blank=True, max_length=200, null=True),
+                ),
+                (
+                    "insurance_type_name",
+                    models.CharField(blank=True, max_length=100, null=True),
+                ),
+                (
+                    "document_type",
+                    models.CharField(
+                        choices=[
+                            ("policy", "Versicherungsschein"),
+                            ("conditions", "Bedingungen"),
+                            ("cancellation", "Kündigung"),
+                            ("invoice", "Rechnung"),
+                            ("other", "Sonstiges"),
+                        ],
+                        default="other",
+                        max_length=30,
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                ("file_path", models.CharField(max_length=500)),
+                (
+                    "original_filename",
+                    models.CharField(blank=True, max_length=255, null=True),
+                ),
+                ("uploaded_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "source",
+                    models.CharField(
+                        choices=[
+                            ("scanner", "Scanner"),
+                            ("upload", "Upload"),
+                            ("email", "Email"),
+                        ],
+                        default="scanner",
+                        max_length=20,
+                    ),
+                ),
+                ("tags", models.CharField(blank=True, max_length=255, null=True)),
+                ("ocr_text", models.TextField(blank=True, null=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="documents",
+                        to="insurance_app.customer",
+                    ),
+                ),
             ],
         ),
     ]

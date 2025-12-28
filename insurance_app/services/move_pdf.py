@@ -13,9 +13,8 @@ def move_pdf_to_customer_folder(pdf_path: str, customer) -> str:
         raise FileNotFoundError(pdf_path)
 
     customer_dir = os.path.join(
-    base_dir,
-    f"{customer.customer_number}_{customer.last_name}"
-)
+        base_dir, f"{customer.customer_number}_{customer.last_name}"
+    )
     os.makedirs(customer_dir, exist_ok=True)
 
     filename = os.path.basename(pdf_path)

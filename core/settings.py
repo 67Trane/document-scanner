@@ -31,40 +31,35 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
 allowed_hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [host.strip()
-                 for host in allowed_hosts_env.split(",") if host.strip()]
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]
 
 cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
 
 CORS_ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in cors_origins_env.split(",")
-    if origin.strip()
+    origin.strip() for origin in cors_origins_env.split(",") if origin.strip()
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 csrf_origins_env = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in csrf_origins_env.split(",")
-    if origin.strip()
+    origin.strip() for origin in csrf_origins_env.split(",") if origin.strip()
 ]
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'corsheaders',
-    'django_filters',
-    'insurance_app',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "corsheaders",
+    "django_filters",
+    "insurance_app",
     "authentication_app",
 ]
 
@@ -80,33 +75,33 @@ MIDDLEWARE = [
 ]
 
 
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -116,16 +111,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -133,9 +128,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -145,14 +140,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 
 
 REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter',
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
@@ -160,7 +155,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
 }
@@ -179,4 +173,3 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CUSTOMER_DOCUMENT_ROOT = os.getenv("CUSTOMER_DOCUMENT_ROOT")
 
 DOCUMENT_IMPORT_TOKEN = os.getenv("DOCUMENT_IMPORT_TOKEN", "")
-
