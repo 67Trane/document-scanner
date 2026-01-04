@@ -160,15 +160,21 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 25,
 }
 
+# SESSION_COOKIE_HTTPONLY = True
+# CSRF_COOKIE_HTTPONLY = False
+
+# SESSION_COOKIE_SAMESITE = "Lax"
+# CSRF_COOKIE_SAMESITE = "Lax" 
+
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False
 
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
+# Read cookie settings from env (strings), with safe defaults
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "Lax")
 
-
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True bei https aktiv
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False") == "True"
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "False") == "True"
 
 
 def require_env(name: str) -> str:
