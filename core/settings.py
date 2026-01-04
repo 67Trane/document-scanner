@@ -31,7 +31,8 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
 allowed_hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]
+ALLOWED_HOSTS = [host.strip()
+                 for host in allowed_hosts_env.split(",") if host.strip()]
 
 cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
 
@@ -170,6 +171,13 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # CSRF_COOKIE_SECURE = True bei https aktiv
 
 
-CUSTOMER_DOCUMENT_ROOT = os.getenv("CUSTOMER_DOCUMENT_ROOT")
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
 
+
+CUSTOMER_DOCUMENT_ROOT = require_env("CUSTOMER_DOCUMENT_ROOT")
+UNASSIGNED_DOCUMENT_ROOT = require_env("UNASSIGNED_DOCUMENT_ROOT")
 DOCUMENT_IMPORT_TOKEN = os.getenv("DOCUMENT_IMPORT_TOKEN", "")

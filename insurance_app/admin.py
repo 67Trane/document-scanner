@@ -4,7 +4,8 @@ from .models import Customer, Document
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ("id", "customer", "contract_typ", "contract_status", "created_at")
+    list_display = ("customer", "id", "contract_typ",
+                    "contract_status", "created_at")
     list_filter = ("contract_typ", "contract_status")
     search_fields = (
         "customer__first_name",
@@ -12,7 +13,6 @@ class DocumentAdmin(admin.ModelAdmin):
         "customer__customer_number",
         "policy_numbers",
     )
-
 
 
 @admin.register(Customer)

@@ -8,6 +8,10 @@ class AmbiguousCustomerError(Exception):
         self.candidates = candidates
 
 
+class UnresolvedCustomerError(Exception):
+    pass
+
+
 def find_or_create_customer(customer_data: dict):
     """Find a customer by OCR-derived data or create one if none exists."""
     first_name = (customer_data.get("first_name") or "").strip()
@@ -15,19 +19,28 @@ def find_or_create_customer(customer_data: dict):
     zip_code = (customer_data.get("zip_code") or "").strip()
     street = (customer_data.get("street") or "").strip()
 
-    # 1) Address-based candidates (OCR-robust)
-    candidates = Customer.objects.filter(
-        street__iexact=street,
-        zip_code=zip_code,
-    )
+    has_name = bool(first_name and last_name)
+    has_address = bool(street and zip_code)
 
-    if candidates.count() == 1:
-        return candidates.first(), False
+    # IMPORTANT: If we have neither reliable name nor address, do not guess.
+    if not has_name and not has_address:
+        raise UnresolvedCustomerError(
+            "Not enough OCR data to resolve customer.")
 
-    if candidates.count() > 1:
-        raise AmbiguousCustomerError(candidates)
+    # 1) Address-based candidates (OCR-robust) - only if address exists
+    if has_address:
+        candidates = Customer.objects.filter(
+            street__iexact=street,
+            zip_code=zip_code,
+        )
 
-    # 2) Exact lookup
+        if candidates.count() == 1:
+            return candidates.first(), False
+
+        if candidates.count() > 1:
+            raise AmbiguousCustomerError(candidates)
+
+    # 2) Exact lookup (only with non-empty fields)
     lookup = {
         "first_name": first_name,
         "last_name": last_name,
@@ -35,6 +48,9 @@ def find_or_create_customer(customer_data: dict):
         "street": street,
     }
     lookup = {k: v for k, v in lookup.items() if v}
+
+    if not lookup:
+        raise UnresolvedCustomerError("Lookup is empty after normalization.")
 
     customer = Customer.objects.filter(**lookup).first()
     if customer:

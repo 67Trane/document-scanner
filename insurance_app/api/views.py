@@ -14,10 +14,11 @@ from authentication_app.api.permissions import HasImportToken, IsInWhitelistGrou
 from ..models import Customer, Document
 from .serializers import CustomerSerializer, DocumentSerializer
 from ..services.extract_pdf_text import extract_pdf_text
-from ..services.move_pdf import move_pdf_to_customer_folder
+from ..services.move_pdf import move_pdf_to_customer_folder, move_pdf_to_unassigned_folder
 from ..services.customer_matching import (
     find_or_create_customer,
     AmbiguousCustomerError,
+    UnresolvedCustomerError,
 )
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,8 @@ class DocumentImportView(APIView):
         try:
             customer, created = find_or_create_customer(customer_data)
             return customer, created, None
+        except UnresolvedCustomerError:
+            return None, False, None
         except AmbiguousCustomerError as e:
             candidates_list = [
                 {
@@ -155,6 +158,8 @@ class DocumentImportView(APIView):
 
     def _move_pdf(self, pdf_path, customer):
         try:
+            if customer is None:
+                return move_pdf_to_unassigned_folder(pdf_path), None
             return move_pdf_to_customer_folder(pdf_path, customer), None
         except FileNotFoundError:
             return None, Response(
@@ -169,7 +174,7 @@ class DocumentImportView(APIView):
         except Exception:
             logger.exception(
                 "Unexpected file error while moving PDF",
-                extra={"pdf_path": pdf_path, "customer_id": customer.id},
+                extra={"pdf_path": pdf_path, "customer_id": getattr(customer, "id", None)},
             )
             return None, Response(
                 {"error": "Unexpected file error while moving PDF."},
