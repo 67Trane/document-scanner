@@ -45,10 +45,15 @@ services:
       context: .
       dockerfile: Dockerfile
     command: >
-      gunicorn core.wsgi:application
-      --bind 0.0.0.0:8000
-      --workers 3
-      --timeout 120
+      sh -c "python manage.py migrate --noinput &&
+         gunicorn core.wsgi:application
+         --bind 0.0.0.0:8000
+         --workers 3
+         --timeout 120
+         --access-logfile -
+         --error-logfile -
+         --log-level debug
+         --capture-output"
     env_file:
       - .env
     volumes:
