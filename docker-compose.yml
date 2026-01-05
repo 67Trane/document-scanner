@@ -36,29 +36,16 @@
 #       # Ordner, den dein Script beobachten soll:
 #       - /docker/myapp/watch:/watch
 #     restart: unless-stopped
-version: "3.9"
-
 services:
   docuscan-backend:
+    build: .
     container_name: docuscan-backend
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-         gunicorn core.wsgi:application
-         --bind 0.0.0.0:8000
-         --workers 3
-         --timeout 120
-         --access-logfile -
-         --error-logfile -
-         --log-level debug
-         --capture-output"
+    restart: unless-stopped
     env_file:
       - .env
-    volumes:
-      - .:/app
-      - ./db:/app/db
     ports:
       - "127.0.0.1:8001:8000"
-    restart: unless-stopped
+    volumes:
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+
