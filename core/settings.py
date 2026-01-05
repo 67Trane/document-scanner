@@ -187,3 +187,7 @@ def require_env(name: str) -> str:
 CUSTOMER_DOCUMENT_ROOT = require_env("CUSTOMER_DOCUMENT_ROOT")
 UNASSIGNED_DOCUMENT_ROOT = require_env("UNASSIGNED_DOCUMENT_ROOT")
 DOCUMENT_IMPORT_TOKEN = os.getenv("DOCUMENT_IMPORT_TOKEN", "")
+
+
+CSRF_COOKIE_DOMAIN = ".mehmet-deliaci.net"
+SESSION_COOKIE_DOMAIN = ".mehmet-deliaci.net"
