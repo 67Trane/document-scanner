@@ -16,8 +16,10 @@ from dotenv import load_dotenv
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+APP_ENV = os.getenv("APP_ENV", "").strip().lower()
+env_file = BASE_DIR / f".env.{APP_ENV}" if APP_ENV else (BASE_DIR / ".env")
+load_dotenv(env_file)
 
 
 # Quick-start development settings - unsuitable for production
@@ -189,5 +191,6 @@ UNASSIGNED_DOCUMENT_ROOT = require_env("UNASSIGNED_DOCUMENT_ROOT")
 DOCUMENT_IMPORT_TOKEN = os.getenv("DOCUMENT_IMPORT_TOKEN", "")
 
 
-CSRF_COOKIE_DOMAIN = ".mehmet-deliaci.net"
-SESSION_COOKIE_DOMAIN = ".mehmet-deliaci.net"
+CSRF_COOKIE_DOMAIN = os.getenv("CSRF_COOKIE_DOMAIN", None)
+SESSION_COOKIE_DOMAIN = os.getenv("SESSION_COOKIE_DOMAIN", None)
+

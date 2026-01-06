@@ -36,16 +36,35 @@
 #       # Ordner, den dein Script beobachten soll:
 #       - /docker/myapp/watch:/watch
 #     restart: unless-stopped
+
+
+
+
+# services:
+#   docuscan-backend:
+#     build: .
+#     container_name: docuscan-backend
+#     restart: unless-stopped
+#     env_file:
+#       - .env
+#     ports:
+#       - "127.0.0.1:8001:8000"
+#     volumes:
+#       - ./media:/app/media
+#       - ./staticfiles:/app/staticfiles
+
 services:
   docuscan-backend:
     build: .
     container_name: docuscan-backend
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.demo
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings.demo
+      - APP_ENV=demo
     ports:
       - "127.0.0.1:8001:8000"
     volumes:
       - ./media:/app/media
       - ./staticfiles:/app/staticfiles
-
