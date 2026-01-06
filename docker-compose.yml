@@ -72,5 +72,7 @@ services:
       sh -c "
       python manage.py migrate --noinput &&
       python manage.py ensure_demo_admin &&
+      mkdir -p /app/media/unassigned &&
+      cp -n /app/demo_seed/pdf/*.pdf /app/media/unassigned/ 2>/dev/null || true &&
       gunicorn core.wsgi:application --bind 0.0.0.0:8000
       "
