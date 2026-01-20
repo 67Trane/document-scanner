@@ -7,9 +7,9 @@ class Command(BaseCommand):
     help = "Ensure demo admin user exists and is in whitelist group (idempotent)."
 
     def handle(self, *args, **options):
-        username = os.getenv("DEMO_ADMIN_USERNAME", "admin")
-        email = os.getenv("DEMO_ADMIN_EMAIL", "admin@example.com")
-        password = os.getenv("DEMO_ADMIN_PASSWORD", "")
+        username = os.getenv("DEMO_ADMIN_USERNAME", "demo")
+        email = os.getenv("DEMO_ADMIN_EMAIL", "demo@example.com")
+        password = os.getenv("DEMO_ADMIN_PASSWORD", "asdasd")
 
         if not password:
             self.stdout.write(self.style.WARNING(
