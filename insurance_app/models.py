@@ -1,13 +1,23 @@
 from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Lower
+from django.contrib.auth import get_user_model
 
+User = get_user_model() 
 
 class Customer(models.Model):
     ACTIVE_STATUS = [
         ("aktiv", "Aktiv"),
         ("ruhend", "Ruhend"),
     ]
+
+    broker = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="customers",
+        blank=True,
+        null=True
+    )
 
     customer_number = models.CharField(
         max_length=11,  # "YYYY-XXXXXX" -> 4 + 1 + 6 = 11
@@ -20,6 +30,7 @@ class Customer(models.Model):
     active_status = models.CharField(
         max_length=50, choices=ACTIVE_STATUS, null=True, blank=True, default="aktiv"
     )
+    appointment_at = models.DateTimeField(null=True, blank=True, db_index=True)
     salutation = models.CharField(max_length=10, blank=True)
     first_name = models.CharField(max_length=100, blank=True, db_index=True)
     last_name = models.CharField(max_length=100, blank=True, db_index=True)
@@ -28,7 +39,8 @@ class Customer(models.Model):
     phone = models.CharField(max_length=50, blank=True)
     street = models.CharField(max_length=255, blank=True)
     zip_code = models.CharField(max_length=10, blank=True, db_index=True)
-    city = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    city = models.CharField(max_length=100, blank=True,
+                            null=True, db_index=True)
     country = models.CharField(max_length=100, default="Germany")
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -78,6 +90,7 @@ class Customer(models.Model):
             models.Index(fields=["city"]),
             models.Index(fields=["street"]),
             models.Index(fields=["street", "zip_code"]),
+            models.Index(fields=["broker", "last_name"]),
         ]
 
         constraints = [
@@ -86,7 +99,9 @@ class Customer(models.Model):
                 Lower("last_name"),
                 Lower("zip_code"),
                 Lower("street"),
-                name="uniq_customer_identity_ci",
+                Lower("street"),
+                "broker", 
+                name="uniq_customer_identity_per_broker_ci", 
             )
         ]
 

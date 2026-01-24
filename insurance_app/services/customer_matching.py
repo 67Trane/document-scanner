@@ -12,7 +12,7 @@ class UnresolvedCustomerError(Exception):
     pass
 
 
-def find_or_create_customer(customer_data: dict):
+def find_or_create_customer(customer_data: dict, broker):
     """Find a customer by OCR-derived data or create one if none exists."""
     first_name = (customer_data.get("first_name") or "").strip()
     last_name = (customer_data.get("last_name") or "").strip()
@@ -30,6 +30,7 @@ def find_or_create_customer(customer_data: dict):
     # 1) Address-based candidates (OCR-robust) - only if address exists
     if has_address:
         candidates = Customer.objects.filter(
+            broker=broker,  # NEW
             street__iexact=street,
             zip_code=zip_code,
         )
@@ -42,6 +43,7 @@ def find_or_create_customer(customer_data: dict):
 
     # 2) Exact lookup (only with non-empty fields)
     lookup = {
+        "broker": broker,
         "first_name": first_name,
         "last_name": last_name,
         "zip_code": zip_code,
@@ -61,6 +63,6 @@ def find_or_create_customer(customer_data: dict):
         with transaction.atomic():
             serializer = CustomerSerializer(data=customer_data)
             serializer.is_valid(raise_exception=True)
-            return serializer.save(), True
+            return serializer.save(broker=broker), True
     except IntegrityError:
         return Customer.objects.get(**lookup), False

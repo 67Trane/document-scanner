@@ -21,6 +21,9 @@ from ..services.customer_matching import (
     UnresolvedCustomerError,
 )
 
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +33,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Return customers filtered by optional search tokens."""
-        qs = Customer.objects.all()
+        qs = Customer.objects.filter(broker=self.request.user)
 
         q = (self.request.query_params.get("q") or "").strip()
         if q:
@@ -47,6 +50,8 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         return qs.order_by("id")
 
+    def perform_create(self, serializer):
+        serializer.save(broker=self.request.user)
 
 class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
@@ -55,7 +60,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Return documents with an optional customer filter."""
-        queryset = super().get_queryset()
+        queryset = Document.objects.select_related("customer").filter(
+            customer__broker=self.request.user
+        ).order_by("-id")
 
         # Optional filter by customer id
         customer_id = self.request.query_params.get("customer")
@@ -71,6 +78,9 @@ class DocumentImportView(APIView):
 
     def post(self, request):
         """Import a PDF from disk and create customer/document records."""
+        broker_id = request.headers.get("X-Broker-Id")
+        broker = User.objects.get(id=int(broker_id))
+        
         pdf_path = request.data.get("pdf_path")
 
         if not isinstance(pdf_path, str) or not pdf_path.strip():
@@ -90,7 +100,7 @@ class DocumentImportView(APIView):
         customer_data = self._build_customer_data(infos)
 
         # 3) Find or create customer (OCR-safe logic lives in service)
-        customer, created, error_response = self._resolve_customer(customer_data)
+        customer, created, error_response = self._resolve_customer(customer_data, broker)
         if error_response:
             return error_response
 
@@ -128,9 +138,9 @@ class DocumentImportView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def _resolve_customer(self, customer_data):
+    def _resolve_customer(self, customer_data, broker):
         try:
-            customer, created = find_or_create_customer(customer_data)
+            customer, created = find_or_create_customer(customer_data, broker=broker)
             return customer, created, None
         except UnresolvedCustomerError:
             return None, False, None

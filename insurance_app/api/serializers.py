@@ -7,7 +7,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = "__all__"
-        read_only_fields = ["customer_number", "created_at", "updated_at"]
+        read_only_fields = ["customer_number", "created_at", "updated_at", "broker"]
 
     def validate(self, attrs):
         # IMPORTANT: normalize identity fields so uniqueness works reliably
