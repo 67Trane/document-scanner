@@ -1,13 +1,50 @@
 from rest_framework import serializers
-from ..models import Customer, Document
+from ..models import Customer, Document, CustomerShareLink
 from django.urls import reverse
+from django.conf import settings
+
+
+class CustomerShareLinkSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomerShareLink
+        fields = ["id", "token", "url",
+                  "is_active", "expires_at", "created_at"]
+        read_only_fields = ["id", "token", "url", "created_at"]
+
+    def get_url(self, obj):
+        # NOTE: Put FRONTEND_URL in settings (e.g. http://localhost:4200)
+        base = getattr(settings, "FRONTEND_URL", "").rstrip("/")
+        return f"{base}/#/share/{obj.token}" if base else obj.token
+
+
+class PublicDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Document
+        fields = ["id", "created_at", "contract_typ",
+                  "contract_status", "policy_numbers", "license_plates"]
+
+
+class PublicCustomerSerializer(serializers.ModelSerializer):
+    documents = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Customer
+        fields = ["id", "first_name", "last_name", "street",
+                  "zip_code", "city", "country", "documents"]
+
+    def get_documents(self, obj):
+        docs = Document.objects.filter(customer=obj).order_by("-id")
+        return PublicDocumentSerializer(docs, many=True).data
 
 
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = "__all__"
-        read_only_fields = ["customer_number", "created_at", "updated_at", "broker"]
+        read_only_fields = ["customer_number",
+                            "created_at", "updated_at", "broker"]
 
     def validate(self, attrs):
         # IMPORTANT: normalize identity fields so uniqueness works reliably

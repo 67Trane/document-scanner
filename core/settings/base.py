@@ -21,7 +21,7 @@ APP_ENV = os.getenv("APP_ENV", "").strip().lower()
 env_file = BASE_DIR / f".env.{APP_ENV}" if APP_ENV else (BASE_DIR / ".env")
 load_dotenv(env_file)
 
-
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").rstrip("/")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 

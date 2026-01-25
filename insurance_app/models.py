@@ -2,8 +2,46 @@ from django.db import models
 from django.utils import timezone
 from django.db.models.functions import Lower
 from django.contrib.auth import get_user_model
+from django.conf import settings
+import secrets
 
 User = get_user_model() 
+
+def _generate_share_token() -> str:
+    # 32 bytes -> URL-safe token, very hard to guess
+    return secrets.token_urlsafe(32)
+
+
+class CustomerShareLink(models.Model):
+    customer = models.ForeignKey(
+        "Customer",
+        on_delete=models.CASCADE,
+        related_name="share_links",
+    )
+
+    # Who created the link (audit + multi-broker safety)
+    broker = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_share_links",
+    )
+
+    token = models.CharField(max_length=128, unique=True, db_index=True, default=_generate_share_token)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    # Optional expiration
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self) -> bool:
+        # Simple validity check (can be used in views)
+        if not self.is_active:
+            return False
+        if self.expires_at and timezone.now() >= self.expires_at:
+            return False
+        return True
+
 
 class Customer(models.Model):
     ACTIVE_STATUS = [

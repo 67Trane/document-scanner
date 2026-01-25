@@ -1,18 +1,18 @@
 import logging
 import os
-
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from rest_framework import status, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authentication_app.api.permissions import HasImportToken, IsInWhitelistGroup
 
-from ..models import Customer, Document
-from .serializers import CustomerSerializer, DocumentSerializer
+from ..models import Customer, Document, CustomerShareLink
+from .serializers import CustomerSerializer, DocumentSerializer, PublicCustomerSerializer, CustomerShareLinkSerializer
 from ..services.extract_pdf_text import extract_pdf_text
 from ..services.move_pdf import move_pdf_to_customer_folder, move_pdf_to_unassigned_folder
 from ..services.customer_matching import (
@@ -20,11 +20,103 @@ from ..services.customer_matching import (
     AmbiguousCustomerError,
     UnresolvedCustomerError,
 )
-
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
+class CustomerShareLinkListCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsInWhitelistGroup]
+
+    def get(self, request, customer_id: int):
+        customer = get_object_or_404(Customer, id=customer_id, broker=request.user)
+        links = CustomerShareLink.objects.filter(customer=customer).order_by("-created_at")
+        return Response(CustomerShareLinkSerializer(links, many=True).data)
+
+    def post(self, request, customer_id: int):
+        customer = get_object_or_404(Customer, id=customer_id, broker=request.user)
+
+        # Optional: allow client to request expiry days, default 30
+        days = request.data.get("expires_in_days", 30)
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            return Response({"error": "expires_in_days must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if days < 1 or days > 365:
+            return Response({"error": "expires_in_days must be between 1 and 365."}, status=status.HTTP_400_BAD_REQUEST)
+
+        expires_at = timezone.now() + timezone.timedelta(days=days)
+
+        share = CustomerShareLink.objects.create(
+            customer=customer,
+            broker=request.user,
+            expires_at=expires_at,
+            is_active=True,
+        )
+
+        return Response(CustomerShareLinkSerializer(share).data, status=status.HTTP_201_CREATED)
+
+
+class CustomerShareLinkDeactivateView(APIView):
+    permission_classes = [IsAuthenticated, IsInWhitelistGroup]
+
+    def post(self, request, customer_id: int, link_id: int):
+        customer = get_object_or_404(Customer, id=customer_id, broker=request.user)
+        link = get_object_or_404(CustomerShareLink, id=link_id, customer=customer)
+
+        link.is_active = False
+        link.save(update_fields=["is_active"])
+
+        return Response({"status": "deactivated"}, status=status.HTTP_200_OK)
+
+
+class PublicCustomerView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token: str):
+        try:
+            share = CustomerShareLink.objects.select_related(
+                "customer").get(token=token)
+        except CustomerShareLink.DoesNotExist:
+            raise Http404("Not found")
+
+        if not share.is_valid():
+            raise Http404("Not found")
+
+        customer = share.customer
+        data = PublicCustomerSerializer(customer).data
+        return Response(data)
+
+
+class PublicDocumentFileView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token: str, document_id: int):
+        try:
+            share = CustomerShareLink.objects.select_related(
+                "customer").get(token=token)
+        except CustomerShareLink.DoesNotExist:
+            raise Http404("Not found")
+
+        if not share.is_valid():
+            raise Http404("Not found")
+
+        # Only allow documents that belong to the shared customer
+        try:
+            doc = Document.objects.get(id=document_id, customer=share.customer)
+        except Document.DoesNotExist:
+            raise Http404("Not found")
+
+        # Reuse your existing file response logic (make sure file_path exists)
+        if not doc.file_path or not os.path.exists(doc.file_path):
+            raise Http404("File not found")
+
+        return FileResponse(open(doc.file_path, "rb"), content_type="application/pdf")
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
@@ -53,6 +145,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(broker=self.request.user)
 
+
 class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
     serializer_class = DocumentSerializer
@@ -80,7 +173,7 @@ class DocumentImportView(APIView):
         """Import a PDF from disk and create customer/document records."""
         broker_id = request.headers.get("X-Broker-Id")
         broker = User.objects.get(id=int(broker_id))
-        
+
         pdf_path = request.data.get("pdf_path")
 
         if not isinstance(pdf_path, str) or not pdf_path.strip():
@@ -100,7 +193,8 @@ class DocumentImportView(APIView):
         customer_data = self._build_customer_data(infos)
 
         # 3) Find or create customer (OCR-safe logic lives in service)
-        customer, created, error_response = self._resolve_customer(customer_data, broker)
+        customer, created, error_response = self._resolve_customer(
+            customer_data, broker)
         if error_response:
             return error_response
 
@@ -132,7 +226,8 @@ class DocumentImportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception:
-            logger.exception("Failed to read PDF", extra={"pdf_path": pdf_path})
+            logger.exception("Failed to read PDF", extra={
+                             "pdf_path": pdf_path})
             return None, Response(
                 {"error": "Failed to read PDF."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -140,7 +235,8 @@ class DocumentImportView(APIView):
 
     def _resolve_customer(self, customer_data, broker):
         try:
-            customer, created = find_or_create_customer(customer_data, broker=broker)
+            customer, created = find_or_create_customer(
+                customer_data, broker=broker)
             return customer, created, None
         except UnresolvedCustomerError:
             return None, False, None
@@ -184,7 +280,8 @@ class DocumentImportView(APIView):
         except Exception:
             logger.exception(
                 "Unexpected file error while moving PDF",
-                extra={"pdf_path": pdf_path, "customer_id": getattr(customer, "id", None)},
+                extra={"pdf_path": pdf_path,
+                       "customer_id": getattr(customer, "id", None)},
             )
             return None, Response(
                 {"error": "Unexpected file error while moving PDF."},
