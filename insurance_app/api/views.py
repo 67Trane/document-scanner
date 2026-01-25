@@ -8,6 +8,7 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from datetime import date
 
 from authentication_app.api.permissions import HasImportToken, IsInWhitelistGroup
 
@@ -31,12 +32,15 @@ class CustomerShareLinkListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
 
     def get(self, request, customer_id: int):
-        customer = get_object_or_404(Customer, id=customer_id, broker=request.user)
-        links = CustomerShareLink.objects.filter(customer=customer).order_by("-created_at")
+        customer = get_object_or_404(
+            Customer, id=customer_id, broker=request.user)
+        links = CustomerShareLink.objects.filter(
+            customer=customer).order_by("-created_at")
         return Response(CustomerShareLinkSerializer(links, many=True).data)
 
     def post(self, request, customer_id: int):
-        customer = get_object_or_404(Customer, id=customer_id, broker=request.user)
+        customer = get_object_or_404(
+            Customer, id=customer_id, broker=request.user)
 
         # Optional: allow client to request expiry days, default 30
         days = request.data.get("expires_in_days", 30)
@@ -64,8 +68,10 @@ class CustomerShareLinkDeactivateView(APIView):
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
 
     def post(self, request, customer_id: int, link_id: int):
-        customer = get_object_or_404(Customer, id=customer_id, broker=request.user)
-        link = get_object_or_404(CustomerShareLink, id=link_id, customer=customer)
+        customer = get_object_or_404(
+            Customer, id=customer_id, broker=request.user)
+        link = get_object_or_404(
+            CustomerShareLink, id=link_id, customer=customer)
 
         link.is_active = False
         link.save(update_fields=["is_active"])
@@ -119,26 +125,58 @@ class PublicDocumentFileView(APIView):
         return FileResponse(open(doc.file_path, "rb"), content_type="application/pdf")
 
 
+def parse_date_token(t: str):
+    try:
+        return date.fromisoformat(t)  # erwartet YYYY-MM-DD
+    except ValueError:
+        return None
+
+
 class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
 
     def get_queryset(self):
-        """Return customers filtered by optional search tokens."""
         qs = Customer.objects.filter(broker=self.request.user)
 
         q = (self.request.query_params.get("q") or "").strip()
-        if q:
-            tokens = [t for t in q.split() if t]
-            for t in tokens:
-                qs = qs.filter(
-                    Q(first_name__icontains=t)
-                    | Q(last_name__icontains=t)
-                    | Q(email__icontains=t)
-                    | Q(zip_code__icontains=t)
-                    | Q(city__icontains=t)
-                    | Q(customer_number__icontains=t)
+        if not q:
+            return qs.order_by("id")
+
+        tokens = [t for t in q.split() if t]
+
+        for t in tokens:
+            token_q = (
+                Q(first_name__icontains=t)
+                | Q(last_name__icontains=t)
+                | Q(email__icontains=t)
+                | Q(zip_code__icontains=t)
+                | Q(city__icontains=t)
+                | Q(customer_number__icontains=t)
+            )
+
+            # 1) Full date: YYYY-MM-DD
+            parsed_date = parse_date_token(t)
+            if parsed_date:
+                token_q |= Q(date_of_birth=parsed_date)
+
+            # 2) Year only: YYYY
+            elif t.isdigit() and len(t) == 4:
+                token_q |= Q(date_of_birth__year=int(t))
+
+            # 3) Year-month: YYYY-MM
+            elif (
+                len(t) == 7
+                and t[4] == "-"
+                and t[:4].isdigit()
+                and t[5:7].isdigit()
+            ):
+                token_q |= Q(
+                    date_of_birth__year=int(t[:4]),
+                    date_of_birth__month=int(t[5:7]),
                 )
+
+            qs = qs.filter(token_q)
 
         return qs.order_by("id")
 
