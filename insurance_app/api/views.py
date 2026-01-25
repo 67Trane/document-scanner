@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from datetime import date
+from rest_framework.decorators import action
 
 from authentication_app.api.permissions import HasImportToken, IsInWhitelistGroup
 
@@ -183,6 +184,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(broker=self.request.user)
 
+    @action(detail=False, methods=["get"], url_path="count")
+    def count(self, request):
+        return Response({
+            "count": self.get_queryset().count()
+        })
 
 class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsInWhitelistGroup]
