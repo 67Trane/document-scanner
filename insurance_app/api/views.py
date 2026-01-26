@@ -141,46 +141,68 @@ class CustomerViewSet(viewsets.ModelViewSet):
         qs = Customer.objects.filter(broker=self.request.user)
 
         q = (self.request.query_params.get("q") or "").strip()
+        mode = (self.request.query_params.get("mode") or "name").strip().lower()
+
         if not q:
             return qs.order_by("id")
 
-        tokens = [t for t in q.split() if t]
+        # -----------------------------
+        # Mode: Name (nur Name suchen)
+        # -----------------------------
+        if mode == "name":
+            tokens = [t for t in q.split() if t]
+            for t in tokens:
+                qs = qs.filter(Q(first_name__icontains=t) | Q(last_name__icontains=t))
+            return qs.order_by("id")
 
-        for t in tokens:
-            token_q = (
-                Q(first_name__icontains=t)
-                | Q(last_name__icontains=t)
-                | Q(email__icontains=t)
-                | Q(zip_code__icontains=t)
-                | Q(city__icontains=t)
-                | Q(customer_number__icontains=t)
-            )
+        # -----------------------------------------
+        # Mode: Kennzeichen (über Documents -> Customer)
+        # -----------------------------------------
+        if mode == "license":
+            plate = self._normalize_license_plate(q)
+            qs = qs.filter(
+                documents__license_plates__icontains=plate
+            ).distinct()
+            return qs.order_by("id")
 
-            # 1) Full date: YYYY-MM-DD
-            parsed_date = parse_date_token(t)
-            if parsed_date:
-                token_q |= Q(date_of_birth=parsed_date)
+        # -----------------------------
+        # Mode: Geburtstag (deine Logik)
+        # -----------------------------
+        if mode == "dob":
+            tokens = [t for t in q.split() if t]
+            for t in tokens:
+                token_q = Q()  # hier NICHT über name/email etc, nur DOB
 
-            # 2) Year only: YYYY
-            elif t.isdigit() and len(t) == 4:
-                token_q |= Q(date_of_birth__year=int(t))
+                parsed_date = parse_date_token(t)
+                if parsed_date:
+                    token_q |= Q(date_of_birth=parsed_date)
 
-            # 3) Year-month: YYYY-MM
-            elif (
-                len(t) == 7
-                and t[4] == "-"
-                and t[:4].isdigit()
-                and t[5:7].isdigit()
-            ):
-                token_q |= Q(
-                    date_of_birth__year=int(t[:4]),
-                    date_of_birth__month=int(t[5:7]),
-                )
+                elif t.isdigit() and len(t) == 4:
+                    token_q |= Q(date_of_birth__year=int(t))
 
-            qs = qs.filter(token_q)
+                elif (
+                    len(t) == 7
+                    and t[4] == "-"
+                    and t[:4].isdigit()
+                    and t[5:7].isdigit()
+                ):
+                    token_q |= Q(
+                        date_of_birth__year=int(t[:4]),
+                        date_of_birth__month=int(t[5:7]),
+                    )
 
-        return qs.order_by("id")
+                qs = qs.filter(token_q)
 
+            return qs.order_by("id")
+
+        # Fallback: wenn mode Müll ist → lieber nichts finden statt "alles"
+        return Customer.objects.none()
+    
+    def _normalize_license_plate(self, value: str) -> str:
+        # Normalize input to match OCR storage format as closely as possible.
+        return " ".join(value.strip().upper().split())
+    
+    
     def perform_create(self, serializer):
         serializer.save(broker=self.request.user)
 
