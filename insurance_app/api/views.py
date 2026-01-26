@@ -168,7 +168,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         # -----------------------------
         # Mode: Geburtstag (deine Logik)
         # -----------------------------
-        if mode == "dob":
+        if mode == "birthdate":
             tokens = [t for t in q.split() if t]
             for t in tokens:
                 token_q = Q()  # hier NICHT über name/email etc, nur DOB
